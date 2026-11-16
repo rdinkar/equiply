@@ -9,6 +9,7 @@ import {
   type AssetStatus,
   type Employee,
 } from '@/types/domain'
+import { oneOf, serializeQuery } from '@/utils/params'
 
 export const ASSET_SORT_KEYS = ['assetTag', 'purchaseDate', 'warrantyExpiry'] as const
 export type AssetSortKey = (typeof ASSET_SORT_KEYS)[number]
@@ -65,10 +66,6 @@ function tagNumber(asset: Asset): number {
   return Number(asset.assetTag.slice(asset.assetTag.lastIndexOf('-') + 1)) || 0
 }
 
-function oneOf<T extends string>(value: string | null, allowed: readonly T[], fallback: T): T {
-  return value !== null && (allowed as readonly string[]).includes(value) ? (value as T) : fallback
-}
-
 export function parseAssetQuery(params: URLSearchParams): AssetQuery {
   const page = Number(params.get('page'))
   return {
@@ -83,12 +80,7 @@ export function parseAssetQuery(params: URLSearchParams): AssetQuery {
 }
 
 export function serializeAssetQuery(query: AssetQuery): URLSearchParams {
-  const params = new URLSearchParams()
-  for (const key of Object.keys(DEFAULT_ASSET_QUERY) as (keyof AssetQuery)[]) {
-    const value = query[key]
-    if (value !== DEFAULT_ASSET_QUERY[key] && value !== '') params.set(key, String(value))
-  }
-  return params
+  return serializeQuery({ ...query }, { ...DEFAULT_ASSET_QUERY })
 }
 
 export function hasActiveFilters(query: AssetQuery): boolean {

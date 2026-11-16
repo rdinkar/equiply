@@ -1,5 +1,6 @@
 import { Search, X } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
+import { ChipGroup } from '@/components/ui/ChipGroup'
 import { controlClasses } from '@/components/ui/Field'
 import { ASSET_CATEGORIES, ASSET_CONDITIONS, ASSET_STATUSES, type AssetStatus } from '@/types/domain'
 import { cn } from '@/utils/cn'
@@ -23,28 +24,16 @@ export function AssetFilters({ query, onChange, statusCounts }: AssetFiltersProp
   const statusOptions: (AssetStatus | 'all')[] = ['all', ...ASSET_STATUSES]
   return (
     <div className="mb-4 space-y-3">
-      <div role="group" aria-label="Filter by status" className="flex flex-wrap gap-1.5">
-        {statusOptions.map((status) => {
-          const active = query.status === status
-          return (
-            <button
-              key={status}
-              type="button"
-              aria-pressed={active}
-              onClick={() => onChange({ status })}
-              className={cn(
-                'inline-flex h-7 items-center gap-1.5 rounded-full border px-3 text-[13px] font-medium transition-colors',
-                active
-                  ? 'border-zinc-900 bg-zinc-900 text-white'
-                  : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:text-zinc-900',
-              )}
-            >
-              {status === 'all' ? 'All' : status}
-              <span className={cn('tabular-nums', active ? 'text-zinc-300' : 'text-zinc-400')}>{statusCounts[status]}</span>
-            </button>
-          )
-        })}
-      </div>
+      <ChipGroup
+        label="Filter by status"
+        value={query.status}
+        onChange={(status) => onChange({ status })}
+        options={statusOptions.map((status) => ({
+          value: status,
+          label: status === 'all' ? 'All' : status,
+          count: statusCounts[status],
+        }))}
+      />
 
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative min-w-56 flex-1 sm:max-w-sm">
