@@ -1,5 +1,3 @@
-import type { EntityRef } from '@/types/domain'
-
 export const paths = {
   overview: '/',
   assets: '/assets',
@@ -22,7 +20,3 @@ export function withAssetParam(search: string, assetId: string | null): string {
   return next ? `?${next}` : ''
 }
 
-/** Standalone link to an entity, for places with no page context to keep (activity log, notifications). */
-export function entityHref(ref: EntityRef): string {
-  return ref.entityType === 'asset' ? `${paths.assets}${withAssetParam('', ref.entityId)}` : paths.employee(ref.entityId)
-}

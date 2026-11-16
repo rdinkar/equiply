@@ -109,11 +109,14 @@ export function EmployeesPage() {
     { id: 'status', header: 'Status', cell: (e) => <EmployeeStatusBadge status={e.status} /> },
   ]
 
-  const joiningSoon = data.employees.filter((e) => e.status === 'Onboarding').length
+  const current = data.employees.length - statusCounts.Inactive
 
   return (
     <>
-      <PageHeader title="Employees" description={`${data.employees.length} people · ${joiningSoon} joining soon`} />
+      <PageHeader
+        title="Employees"
+        description={`${current} current people · ${statusCounts.Inactive} former · ${statusCounts.Onboarding} joining soon`}
+      />
       <div className="mb-4 space-y-3">
         <ChipGroup
           label="Filter by status"

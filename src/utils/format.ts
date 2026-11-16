@@ -1,12 +1,9 @@
-const currencyFormatter = new Intl.NumberFormat('en-US', {
-  style: 'currency',
-  currency: 'USD',
-  maximumFractionDigits: 2,
-  minimumFractionDigits: 0,
-})
+const wholeDollars = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })
+const withCents = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 })
 
+/** "$1,999" for whole amounts, "$49.50" otherwise (never "$49.5"). */
 export function formatCurrency(amount: number): string {
-  return currencyFormatter.format(amount)
+  return (Number.isInteger(amount) ? wholeDollars : withCents).format(amount)
 }
 
 export function initials(name: string): string {

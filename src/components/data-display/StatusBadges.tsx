@@ -13,6 +13,7 @@ import { Badge, type BadgeTone } from '@/components/ui/Badge'
 import type { AssetCategory, AssetCondition, AssetStatus, EmployeeStatus, ReturnState } from '@/types/domain'
 import { cn } from '@/utils/cn'
 import { daysBetween, formatDate } from '@/utils/date'
+import { pluralize } from '@/utils/format'
 
 const assetStatusTone: Record<AssetStatus, BadgeTone> = {
   Available: 'green',
@@ -68,7 +69,7 @@ export const WARRANTY_WARNING_DAYS = 30
 export function WarrantyLabel({ date, today, showDate = true }: { date: string; today: string; showDate?: boolean }) {
   const days = daysBetween(today, date)
   const hint =
-    days < 0 ? 'Expired' : days === 0 ? 'Expires today' : days <= WARRANTY_WARNING_DAYS ? `${days} days left` : null
+    days < 0 ? 'Expired' : days === 0 ? 'Expires today' : days <= WARRANTY_WARNING_DAYS ? `${pluralize(days, 'day')} left` : null
   return (
     <span className="whitespace-nowrap">
       {showDate && <span className={cn(days < 0 && 'text-zinc-500')}>{formatDate(date)}</span>}

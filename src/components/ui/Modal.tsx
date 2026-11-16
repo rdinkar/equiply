@@ -13,8 +13,8 @@ interface ModalProps {
   /** Centered dialog, or a full-height panel from the right or left edge. */
   variant?: 'dialog' | 'drawer-right' | 'drawer-left'
   size?: 'sm' | 'md' | 'lg'
-  /** Hide the title visually (still announced) for drawers with their own header. */
-  hideTitle?: boolean
+  /** False while a save is in flight: Escape, the backdrop and Close do nothing, so a late result can't land on a closed dialog. */
+  dismissible?: boolean
 }
 
 const widths = { sm: 'max-w-sm', md: 'max-w-lg', lg: 'max-w-2xl' }
@@ -34,7 +34,7 @@ export function Modal({
   footer,
   variant = 'dialog',
   size = 'md',
-  hideTitle = false,
+  dismissible = true,
 }: ModalProps) {
   const ref = useRef<HTMLDialogElement>(null)
   // A click fires on the common ancestor of mousedown and mouseup, so a text-selection
@@ -77,14 +77,14 @@ export function Modal({
       aria-describedby={description ? descriptionId : undefined}
       onCancel={(event) => {
         event.preventDefault()
-        onClose()
+        if (dismissible) onClose()
       }}
       onMouseDown={(event) => {
         pressedBackdrop.current = event.target === ref.current
       }}
       onClick={(event) => {
         // A click on the <dialog> itself (not its content) is a backdrop click.
-        if (event.target === ref.current && pressedBackdrop.current) onClose()
+        if (dismissible && event.target === ref.current && pressedBackdrop.current) onClose()
         pressedBackdrop.current = false
       }}
       className={cn(
@@ -109,7 +109,7 @@ export function Modal({
                 id={titleId}
                 tabIndex={-1}
                 data-modal-title
-                className={cn('text-base font-semibold text-zinc-900 focus:outline-none', hideTitle && 'sr-only')}
+                className="text-base font-semibold text-zinc-900 focus:outline-none"
               >
                 {title}
               </h2>
@@ -119,7 +119,13 @@ export function Modal({
                 </p>
               )}
             </div>
-            <IconButton icon={X} label="Close" onClick={onClose} className="-mr-1.5 -mt-1" />
+            <IconButton
+              icon={X}
+              label="Close"
+              onClick={onClose}
+              disabled={!dismissible}
+              className="-mr-1.5 -mt-1 disabled:cursor-not-allowed disabled:opacity-40"
+            />
           </header>
           <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">{children}</div>
           {footer && (

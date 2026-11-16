@@ -1,16 +1,16 @@
 import { createContext, use } from 'react'
 
-export type ToastTone = 'success' | 'error'
-
 export interface Toast {
   id: number
-  tone: ToastTone
   message: string
 }
 
+/**
+ * Success confirmations only. Errors are shown inline in the dialog or form
+ * that caused them, next to the thing the user can fix.
+ */
 export interface ToastApi {
   success: (message: string) => void
-  error: (message: string) => void
 }
 
 export const ToastContext = createContext<ToastApi | null>(null)

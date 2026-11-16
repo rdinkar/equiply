@@ -17,7 +17,8 @@ interface AssetFiltersProps {
 }
 
 const SORT_OPTIONS: { value: `${AssetSortKey}:${'asc' | 'desc'}`; label: string }[] = [
-  { value: 'assetTag:asc', label: 'Asset tag' },
+  { value: 'assetTag:asc', label: 'Asset tag (oldest first)' },
+  { value: 'assetTag:desc', label: 'Asset tag (newest first)' },
   { value: 'purchaseDate:desc', label: 'Newest purchase' },
   { value: 'purchaseDate:asc', label: 'Oldest purchase' },
   { value: 'warrantyExpiry:asc', label: 'Warranty ending soonest' },

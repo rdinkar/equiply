@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useReducer, useState, type ReactNode } from 'react'
 import { assetService } from '@/services/assetService'
+import { offboardingService } from '@/services/offboardingService'
+import { onboardingService } from '@/services/onboardingService'
 import { workspaceService } from '@/services/workspaceService'
 import type { WorkspaceData } from '@/types/domain'
 import {
@@ -48,6 +50,14 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       markUnderRepair: async (assetId, note) => commit(await assetService.markUnderRepair(assetId, note)),
       markAvailable: async (assetId, condition) => commit(await assetService.markAvailable(assetId, condition)),
       retireAsset: async (assetId, reason) => commit(await assetService.retire(assetId, reason)),
+      addNewHire: async (input) => {
+        const { data, employee } = await onboardingService.addHire(input)
+        commit(data)
+        return employee
+      },
+      completeOnboarding: async (employeeId) => commit(await onboardingService.complete(employeeId)),
+      initiateOffboarding: async (employeeId, lastWorkingDay) => commit(await offboardingService.initiate(employeeId, lastWorkingDay)),
+      completeOffboarding: async (employeeId) => commit(await offboardingService.complete(employeeId)),
     }
   }, [])
 

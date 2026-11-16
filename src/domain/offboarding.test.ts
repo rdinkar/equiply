@@ -36,6 +36,12 @@ describe('initiateOffboarding', () => {
     expect(findInvariantViolations(data)).toEqual([])
   })
 
+  it('requires a valid last working day', () => {
+    expect(() => initiateOffboarding(baseData(), { employeeId: 'emp_priya', lastWorkingDay: '' }, testContext())).toThrowError(
+      /last working day/i,
+    )
+  })
+
   it('only offboards active employees', () => {
     expect(() =>
       initiateOffboarding(baseData(), { employeeId: 'emp_mei', lastWorkingDay: '2026-11-30' }, testContext()),

@@ -79,6 +79,8 @@ export function AssetFormDialog({ asset, onClose, onCreated }: AssetFormDialogPr
           notes: '',
         },
   )
+  // What the form started with, to tell a real edit from a no-op save.
+  const [initial] = useState(values)
   const [errors, setErrors] = useState<AssetFieldErrors>({})
   const [submitted, setSubmitted] = useState(false)
 
@@ -116,6 +118,11 @@ export function AssetFormDialog({ asset, onClose, onCreated }: AssetFormDialogPr
       focusFirstError(clientErrors)
       return
     }
+    const unchanged = (Object.keys(values) as (keyof FormValues)[]).every((k) => values[k].trim() === initial[k].trim())
+    if (isEdit && unchanged) {
+      onClose()
+      return
+    }
     const result = await save.mutate(toInput(values))
     if (result.ok) {
       toast.success(isEdit ? `${values.name.trim()} updated` : `${result.value.name} added as ${result.value.assetTag}`)
@@ -123,8 +130,9 @@ export function AssetFormDialog({ asset, onClose, onCreated }: AssetFormDialogPr
       onClose()
     } else if (isDomainError(result.error) && result.error.fieldErrors) {
       // The server re-validates; its field errors land on the same fields.
-      setErrors(result.error.fieldErrors)
-      focusFirstError(result.error.fieldErrors)
+      const fieldErrors = result.error.fieldErrors as AssetFieldErrors
+      setErrors(fieldErrors)
+      focusFirstError(fieldErrors)
     }
   }
 
@@ -136,6 +144,7 @@ export function AssetFormDialog({ asset, onClose, onCreated }: AssetFormDialogPr
       open
       onClose={onClose}
       title={title}
+      dismissible={!save.isPending}
       description={isEdit ? `${asset?.assetTag} · status changes happen through the asset’s actions` : 'A unique asset tag is generated automatically.'}
       size="lg"
       footer={

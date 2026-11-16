@@ -184,3 +184,14 @@ export interface AssetInput {
 }
 
 export type AssetFieldErrors = Partial<Record<keyof AssetInput, string>>
+
+/** Fields IT needs to start onboarding someone who isn't in the directory yet. */
+export interface NewHireInput {
+  name: string
+  email: string
+  department: Department
+  designation: string
+  /** Calendar date, YYYY-MM-DD. */
+  joiningDate: string
+  location: string
+}

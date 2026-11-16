@@ -110,6 +110,7 @@ function MarkAvailableDialog({ assetId, onClose }: { assetId: string; onClose: (
       open
       onClose={onClose}
       title="Mark available"
+      dismissible={!isPending}
       description={asset && `${asset.name} (${asset.assetTag}) is repaired and ready to assign.`}
       footer={
         <>

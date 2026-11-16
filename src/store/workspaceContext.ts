@@ -1,5 +1,5 @@
 import { createContext } from 'react'
-import type { Asset, AssetCondition, AssetInput, WorkspaceData } from '@/types/domain'
+import type { Asset, AssetCondition, AssetInput, Employee, NewHireInput, WorkspaceData } from '@/types/domain'
 
 /**
  * Client-side cache of the workspace. `status` is a discriminated union, so
@@ -43,6 +43,10 @@ export interface WorkspaceActions {
   markUnderRepair: (assetId: string, note?: string) => Promise<void>
   markAvailable: (assetId: string, condition: AssetCondition) => Promise<void>
   retireAsset: (assetId: string, reason?: string) => Promise<void>
+  addNewHire: (input: NewHireInput) => Promise<Employee>
+  completeOnboarding: (employeeId: string) => Promise<void>
+  initiateOffboarding: (employeeId: string, lastWorkingDay: string) => Promise<void>
+  completeOffboarding: (employeeId: string) => Promise<void>
 }
 
 export const WorkspaceStateContext = createContext<WorkspaceContextValue | null>(null)

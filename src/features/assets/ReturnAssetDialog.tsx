@@ -39,6 +39,7 @@ export function ReturnAssetDialog({ assetId, onClose }: { assetId: string; onClo
       open
       onClose={onClose}
       title="Record return"
+      dismissible={!isPending}
       description={asset && holder ? `${asset.name} (${asset.assetTag}) from ${holder.name}` : undefined}
       footer={
         <>

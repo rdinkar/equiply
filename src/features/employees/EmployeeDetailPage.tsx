@@ -1,4 +1,4 @@
-import { ArrowLeft, Briefcase, CalendarDays, CircleCheck, Mail, MapPin, PackageOpen, RotateCcw, UserCheck, UserX } from 'lucide-react'
+import { ArrowLeft, Briefcase, CalendarDays, CircleCheck, Mail, MapPin, PackageOpen, RotateCcw, UserCheck, UserMinus, UserX } from 'lucide-react'
 import { useId, useState, type ReactNode } from 'react'
 import { Link, useParams } from 'react-router'
 import { paths } from '@/app/paths'
@@ -20,6 +20,8 @@ import {
 } from '@/domain/selectors'
 import { ActivityTimeline } from '@/features/activity/ActivityTimeline'
 import { AssetDialogs, type AssetDialogState } from '@/features/assets/AssetDialogs'
+import { CompleteOffboardingDialog, InitiateOffboardingDialog } from '@/features/offboarding/OffboardingDialogs'
+import { CompleteOnboardingDialog } from '@/features/onboarding/OnboardingDialogs'
 import { useAssetDrawer } from '@/hooks/useAssetDrawer'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { useToday } from '@/hooks/useToday'
@@ -63,12 +65,19 @@ export function EmployeeDetailPage() {
   return <EmployeeDetail key={employee.id} employee={employee} />
 }
 
+type LifecycleDialog =
+  | { kind: 'initiateOffboarding' }
+  | { kind: 'completeOffboarding' }
+  | { kind: 'completeOnboarding' }
+  | null
+
 function EmployeeDetail({ employee }: { employee: Employee }) {
   const data = useWorkspaceData()
   const today = useToday()
   const drawer = useAssetDrawer()
   const [dialog, setDialog] = useState<AssetDialogState>(null)
-  const ids = { hardware: useId(), history: useId(), activity: useId() }
+  const [lifecycle, setLifecycle] = useState<LifecycleDialog>(null)
+  const ids = { hardware: useId(), history: useId(), activity: useId(), offboarding: useId() }
 
   const assets = getAssignedAssets(data, employee.id)
   const pastAssignments = getAssignmentHistory(data, { employeeId: employee.id }).filter((a) => a.returnedAt)
@@ -76,6 +85,7 @@ function EmployeeDetail({ employee }: { employee: Employee }) {
   const onboarding = getOpenOnboarding(data, employee.id)
   const offboarding = getOpenOffboarding(data, employee.id)
   const blockReason = receiveBlockReason(employee)
+  const pendingReturns = offboarding ? getOutstandingReturns(offboarding).length : 0
 
   return (
     <>
@@ -91,15 +101,22 @@ function EmployeeDetail({ employee }: { employee: Employee }) {
         description={`${employee.designation} · ${employee.department}`}
         actions={
           <div className="flex flex-col items-end gap-1">
-            <Button
+            <div className="flex flex-wrap justify-end gap-2">
+              {employee.status === 'Active' && (
+                <Button icon={UserMinus} onClick={() => setLifecycle({ kind: 'initiateOffboarding' })}>
+                  Initiate offboarding
+                </Button>
+              )}
+              <Button
               variant="primary"
               icon={UserCheck}
               disabled={!canReceiveAssets(employee)}
               aria-describedby={blockReason ? `${ids.hardware}-block` : undefined}
               onClick={() => setDialog({ kind: 'assign', employeeId: employee.id })}
             >
-              Assign asset
-            </Button>
+                Assign asset
+              </Button>
+            </div>
             {blockReason && (
               <p id={`${ids.hardware}-block`} className="max-w-xs text-right text-xs text-zinc-500">
                 {blockReason}
@@ -109,15 +126,32 @@ function EmployeeDetail({ employee }: { employee: Employee }) {
         }
       />
 
-      {onboarding && <OnboardingCard employee={employee} />}
+      {onboarding && <OnboardingCard employee={employee} onComplete={() => setLifecycle({ kind: 'completeOnboarding' })} />}
       {offboarding && (
-        <Banner tone="amber">
-          <strong className="font-medium">Offboarding in progress.</strong>{' '}
-          {getOutstandingReturns(offboarding).length > 0
-            ? `${pluralize(getOutstandingReturns(offboarding).length, 'asset')} still to recover`
-            : 'All assets recovered; ready to complete'}{' '}
-          · last working day {formatDate(offboarding.lastWorkingDay)}
-        </Banner>
+        <div className="mb-6 flex flex-wrap items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] text-amber-900">
+          <p className="min-w-0 flex-1">
+            <strong className="font-medium">Offboarding in progress.</strong>{' '}
+            {pendingReturns > 0 ? `${pluralize(pendingReturns, 'asset')} still to recover` : 'All assets recovered; ready to complete'} · last
+            working day {formatDate(offboarding.lastWorkingDay)}
+          </p>
+          <div className="flex flex-col items-end gap-1">
+            <Button
+              size="sm"
+              variant="primary"
+              icon={CircleCheck}
+              disabled={pendingReturns > 0}
+              aria-describedby={pendingReturns > 0 ? ids.offboarding : undefined}
+              onClick={() => setLifecycle({ kind: 'completeOffboarding' })}
+            >
+              Complete offboarding
+            </Button>
+            {pendingReturns > 0 && (
+              <p id={ids.offboarding} className="text-xs text-amber-800">
+                {pluralize(pendingReturns, 'asset')} {pendingReturns === 1 ? 'is' : 'are'} still pending return.
+              </p>
+            )}
+          </div>
+        </div>
       )}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -227,6 +261,9 @@ function EmployeeDetail({ employee }: { employee: Employee }) {
       </div>
 
       <AssetDialogs state={dialog} onClose={() => setDialog(null)} />
+      {lifecycle?.kind === 'initiateOffboarding' && <InitiateOffboardingDialog employeeId={employee.id} onClose={() => setLifecycle(null)} />}
+      {lifecycle?.kind === 'completeOffboarding' && <CompleteOffboardingDialog employeeId={employee.id} onClose={() => setLifecycle(null)} />}
+      {lifecycle?.kind === 'completeOnboarding' && <CompleteOnboardingDialog employeeId={employee.id} onClose={() => setLifecycle(null)} />}
     </>
   )
 }
@@ -243,27 +280,17 @@ function ProfileRow({ icon: Icon, label, value }: { icon: typeof Mail; label: st
   )
 }
 
-function Banner({ tone, children }: { tone: 'amber' | 'violet'; children: ReactNode }) {
-  return (
-    <div
-      className={cn(
-        'mb-6 rounded-lg border px-4 py-3 text-[13px]',
-        tone === 'amber' ? 'border-amber-200 bg-amber-50 text-amber-900' : 'border-violet-200 bg-violet-50 text-violet-900',
-      )}
-    >
-      {children}
-    </div>
-  )
-}
-
-/** Read-only checklist status; the guided onboarding workflow arrives with P1. */
-function OnboardingCard({ employee }: { employee: Employee }) {
+/** Checklist status and completion; the guided per-item allocation flow arrives with P1. */
+function OnboardingCard({ employee, onComplete }: { employee: Employee; onComplete: () => void }) {
   const data = useWorkspaceData()
+  const reasonId = useId()
   const record = getOpenOnboarding(data, employee.id)
   if (!record) return null
   const progress = getOnboardingProgress(data, record)
+  const missing = progress.items.filter((i) => i.required && !i.asset).map((i) => i.category)
   return (
-    <div className="mb-6 rounded-lg border border-violet-200 bg-violet-50/60 px-4 py-3">
+    <div className="mb-6 flex flex-wrap items-start gap-3 rounded-lg border border-violet-200 bg-violet-50/60 px-4 py-3">
+      <div className="min-w-0 flex-1">
       <p className="text-[13px] text-violet-900">
         <strong className="font-medium">Onboarding</strong> · starts {formatDate(record.startDate)} · {progress.requiredDone}/
         {progress.requiredTotal} required items ready
@@ -284,6 +311,24 @@ function OnboardingCard({ employee }: { employee: Employee }) {
           </li>
         ))}
       </ul>
+      </div>
+      <div className="flex flex-col items-end gap-1">
+        <Button
+          size="sm"
+          variant="primary"
+          icon={CircleCheck}
+          disabled={!progress.ready}
+          aria-describedby={progress.ready ? undefined : reasonId}
+          onClick={onComplete}
+        >
+          Complete onboarding
+        </Button>
+        {!progress.ready && (
+          <p id={reasonId} className="text-xs text-violet-800">
+            Assign the required {missing.join(' and ')} first.
+          </p>
+        )}
+      </div>
     </div>
   )
 }

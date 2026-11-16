@@ -9,6 +9,7 @@ import { indexById } from '@/domain/selectors'
 import { useAssetDrawer } from '@/hooks/useAssetDrawer'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { useWorkspaceData } from '@/store/useWorkspace'
+import { getDashboardMetrics } from '@/features/dashboard/dashboardSelectors'
 import { ASSET_STATUSES, type Asset, type AssetStatus } from '@/types/domain'
 import { AssetDialogs, type AssetDialogState } from './AssetDialogs'
 import { AssetFilters } from './AssetFilters'
@@ -51,6 +52,9 @@ export function AssetsPage() {
     return counts
   }, [data.assets])
 
+  // Same numbers the overview shows, so a metric click-through matches its page.
+  const metrics = useMemo(() => getDashboardMetrics(data), [data])
+
   const pageCount = Math.max(1, Math.ceil(results.length / ASSET_PAGE_SIZE))
   const page = Math.min(query.page, pageCount)
   const pageRows = results.slice((page - 1) * ASSET_PAGE_SIZE, page * ASSET_PAGE_SIZE)
@@ -87,7 +91,7 @@ export function AssetsPage() {
     <>
       <PageHeader
         title="Assets"
-        description={`${statusCounts.all} assets · ${statusCounts.Available} available to assign`}
+        description={`${metrics.totalAssets} in service · ${metrics.retired} retired · ${metrics.availableAssets} available to assign`}
         actions={
           <Button variant="primary" icon={Plus} onClick={() => setDialog({ kind: 'create' })}>
             Add asset

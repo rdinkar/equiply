@@ -33,9 +33,10 @@ A **centralized IT administrator** (the seed data's admin is *Jordan Lee*) who o
 | **Assets** | Search by name, tag, serial, or the holder's name. Each row shows manufacturer and model under the name. Filter by status (chips with counts), category, and condition. Sort by tag, purchase date, or warranty, from column headers or a sort menu on small screens. Paginated. All of it lives in the URL. |
 | **Asset drawer** | Opens from `?asset=<id>` over **any** page. Shows identity, condition, purchase, warranty (with days left), current holder, assignment history, and activity timeline. Offers only the actions the lifecycle allows: Assign · Return · Mark under repair · Mark available · Edit · Retire. |
 | **Add / edit asset** | Validated form. Tags are generated (`EQ-LAP-0054`). Duplicate serials are rejected, ignoring case and whitespace. Validation errors focus the first bad field. A new asset opens in the drawer straight away. |
-| **Employees** | Directory with search (name, email, ID), department and status filters, and joining-date sort. Detail page: current hardware (return in place), assignment history, activity, onboarding checklist status, offboarding banner. **Assign** is disabled with the reason when the person can't receive assets. |
+| **Employees** | Directory with search (name, email, ID), department and status filters, and joining-date sort. Detail page: current hardware (return in place), assignment history, activity, onboarding checklist, offboarding status. **Initiate offboarding** for active people. **Complete onboarding/offboarding** right there, disabled with the reason until it's allowed. **Assign** is disabled with the reason when the person can't receive assets. |
 | **Assign / return** | One dialog for both directions: pick a person for an asset, or an asset for a person. Only eligible options are listed. Returns record the condition, and a *Damaged* return goes straight to repair. |
-| **Onboarding / Offboarding** | Read-only queues: equipment progress per incoming hire, and outstanding returns per leaver. Rows link to where the work happens. |
+| **Onboarding** | **Add new hire** creates the person and opens their department's checklist (Sales also needs a phone). The queue shows equipment progress per hire. **Complete onboarding** unlocks only once every required item is allocated. |
+| **Offboarding** | **Start offboarding** for any active employee: pick a last working day and see what's due back. **Record return** on each pending item. **Complete offboarding** unlocks only when nothing is pending (spec rule 10). Returns recorded anywhere tick the same checklist. |
 | **Activity log** | Every mutation, grouped by day. Each entry links to its asset or person. |
 | **Shell** | Collapsible sidebar (remembered) with live counts, breadcrumbs, a global search combobox (`/` to focus), a notifications bell built from the same attention items, and an off-canvas nav on mobile. |
 
@@ -45,7 +46,7 @@ A **centralized IT administrator** (the seed data's admin is *Jordan Lee*) who o
 
 ## Not built yet (P1), with the hooks in place
 
-- **Guided onboarding / offboarding workflows.** The domain operations (`initiateOnboarding`, `completeOnboarding`, `initiateOffboarding`, `processAssetReturn`, `completeOffboarding`) are **implemented and tested**. Only the step-by-step UI is missing. Returns recorded today already tick the offboarding checklist.
+- **Guided onboarding allocation.** Pick an asset for each checklist row, review the selection, and confirm it all in one step. Today, equipment is assigned one item at a time from the employee page; the checklist and completion rules already work.
 - **Asset distribution chart** (category × assigned/available).
 - **Activity log filters** (type, date, entity).
 - **Advanced table features** (multi-sort, page-size control, column visibility).
@@ -159,7 +160,7 @@ Available ──assign──▶ Assigned ──return (ok)──────▶ 
 ## Testing
 
 ```bash
-npm test          # 100 tests: domain rules, invariants, seed, selectors, URL state, components, integration
+npm test          # 123 tests: domain rules, invariants, seed, selectors, URL state, components, integration
 ```
 
 - **Domain:** every rule in the spec's test list, plus edge cases. For example, retiring an assigned asset keeps its history, a return recorded from the drawer updates the offboarding checklist, and lifecycle fields smuggled into an edit are ignored.
@@ -177,7 +178,7 @@ npm test          # 100 tests: domain rules, invariants, seed, selectors, URL st
 
 ## What I'd do next
 
-1. **P1 workflows:** guided onboarding (pick assets per checklist row, review, confirm, complete) and offboarding (initiate, mark each return, complete). The domain operations are ready.
+1. **Guided onboarding allocation:** pick assets per checklist row, review, confirm in one transaction.
 2. **Distribution chart** on the overview, and **activity filters**.
 3. **Server-state library** (TanStack Query) once there's a real API: per-entity queries, optimistic updates with rollback, background refresh.
 4. **Scale:** paginate or virtualise employees and activity (fine at 21 people and 39 events, not at 2,000); index lookups by id.

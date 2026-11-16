@@ -21,4 +21,14 @@ describe('Assets page', () => {
     await user.click((await screen.findAllByRole('button', { name: 'Clear filters' }))[0]!)
     expect(screen.getByRole('searchbox', { name: 'Search assets' })).toHaveValue('')
   })
+
+  it('reflects a reversed tag sort in the sort menu', async () => {
+    renderApp('/assets?sort=assetTag&dir=desc')
+    expect(await screen.findByRole('combobox', { name: 'Sort by' })).toHaveValue('assetTag:desc')
+  })
+
+  it('leads with the in-service count the overview metric links to', async () => {
+    renderApp('/assets')
+    expect(await screen.findByText(/^51 in service/)).toBeInTheDocument()
+  })
 })

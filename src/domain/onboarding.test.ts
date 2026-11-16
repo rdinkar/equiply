@@ -6,6 +6,8 @@ import { DomainError } from './errors'
 import { findInvariantViolations } from './invariants'
 import {
   DEFAULT_CHECKLIST,
+  addNewHire,
+  checklistFor,
   completeOnboarding,
   getOnboardingProgress,
   getOpenOnboarding,
@@ -63,5 +65,45 @@ describe('completeOnboarding', () => {
     expect(getOpenOnboarding(data, 'emp_mei')).toBeUndefined()
     expect(data.activities[0]).toMatchObject({ action: 'employee_onboarded', entityId: 'emp_mei' })
     expect(findInvariantViolations(data)).toEqual([])
+  })
+})
+
+describe('addNewHire', () => {
+  const hire = {
+    name: 'Ana Costa',
+    email: 'ana.costa@equiply.dev',
+    department: 'Sales' as const,
+    designation: 'Account Executive',
+    joiningDate: '2026-12-01',
+    location: 'Remote · Lisbon',
+  }
+
+  it('creates an incoming employee with the next ID and opens onboarding with the department checklist', () => {
+    const { data, employee } = addNewHire(baseData(), hire, testContext())
+
+    expect(employee).toMatchObject({ employeeId: 'EQ-1005', status: 'Onboarding', joiningDate: '2026-12-01' })
+    expect(getOpenOnboarding(data, employee.id)?.checklist).toEqual(checklistFor('Sales'))
+    expect(checklistFor('Sales').filter((i) => i.required).map((i) => i.category)).toEqual(['Laptop', 'Mobile Phone'])
+    expect(data.activities[0]).toMatchObject({ action: 'onboarding_started', entityId: employee.id })
+    expect(findInvariantViolations(data)).toEqual([])
+  })
+
+  it('rejects a work email that is already in use, ignoring case', () => {
+    try {
+      addNewHire(baseData(), { ...hire, email: 'PRIYA@equiply.dev' }, testContext())
+      throw new Error('expected VALIDATION')
+    } catch (error) {
+      expect((error as DomainError).code).toBe('VALIDATION')
+      expect((error as DomainError).fieldErrors?.email).toMatch(/Priya Sharma/)
+    }
+  })
+
+  it('reports missing fields', () => {
+    try {
+      addNewHire(baseData(), { ...hire, name: ' ', designation: '', joiningDate: '' }, testContext())
+      throw new Error('expected VALIDATION')
+    } catch (error) {
+      expect(Object.keys((error as DomainError).fieldErrors ?? {}).sort()).toEqual(['designation', 'joiningDate', 'name'])
+    }
   })
 })

@@ -80,6 +80,7 @@ export function AssignAssetDialog({ assetId, employeeId, onClose }: AssignAssetD
       open
       onClose={onClose}
       title="Assign asset"
+      dismissible={!isPending}
       description={
         pickingEmployee
           ? fixedAsset && `${fixedAsset.name} · ${fixedAsset.assetTag}`

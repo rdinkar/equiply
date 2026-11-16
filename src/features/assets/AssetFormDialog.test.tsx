@@ -1,6 +1,8 @@
 import { screen, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
+import { createAsset } from '@/domain/assets'
 import { mockServer } from '@/services/mockServer'
+import { testContext, validAssetInput } from '@/test/fixtures'
 import { renderApp } from '@/test/renderApp'
 
 async function openAddAsset() {
@@ -55,5 +57,27 @@ describe('Add asset', () => {
     expect(await within(table).findByRole('link', { name: 'Studio Display' })).toBeInTheDocument()
     // The tag renders twice (desktop column + mobile subline, one hidden by CSS at any width).
     expect(within(table).getAllByText('EQ-MON-0054').length).toBeGreaterThan(0)
+  })
+
+  it('shows a serial clash the server catches on the field, when the client could not know', async () => {
+    const { user, dialog } = await openAddAsset()
+    await user.type(dialog.getByLabelText(/Asset name/), 'Spare dock')
+    await user.type(dialog.getByLabelText(/Manufacturer/), 'CalDigit')
+    await user.type(dialog.getByLabelText(/Model/), 'TS4')
+    await user.type(dialog.getByLabelText(/Serial number/), 'RACE-0001')
+    await user.type(dialog.getByLabelText(/Purchase cost/), '399')
+    await user.type(dialog.getByLabelText(/Warranty expiry/), '2029-11-16')
+    await user.type(dialog.getByLabelText(/Location/), 'NY Office · IT closet')
+
+    // Someone else registers the same serial on the server meanwhile.
+    await mockServer.write((data) => {
+      const out = createAsset(data, validAssetInput({ serialNumber: 'RACE-0001' }), testContext())
+      return { data: out.data, result: null }
+    })
+    await user.click(dialog.getByRole('button', { name: 'Add asset' }))
+
+    const serial = dialog.getByLabelText(/Serial number/)
+    expect(await dialog.findByText('This serial number already belongs to EQ-LAP-0054.')).toBeInTheDocument()
+    expect(serial).toHaveFocus()
   })
 })

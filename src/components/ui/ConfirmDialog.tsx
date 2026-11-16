@@ -34,6 +34,7 @@ export function ConfirmDialog({
       onClose={onClose}
       title={title}
       size="sm"
+      dismissible={!isPending}
       footer={
         <>
           <Button onClick={onClose} disabled={isPending}>

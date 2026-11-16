@@ -23,6 +23,9 @@ export function initiateOffboarding(
   if (employee.status !== 'Active') {
     throw new DomainError('INVALID_TRANSITION', `Only active employees can be offboarded; ${employee.name} is ${employee.status}.`)
   }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(lastWorkingDay)) {
+    throw new DomainError('VALIDATION', 'Enter the last working day.', { lastWorkingDay: 'Enter the last working day.' })
+  }
   const assets = getAssignedAssets(data, employeeId)
   const record: OffboardingRecord = {
     id: ctx.newId('off'),

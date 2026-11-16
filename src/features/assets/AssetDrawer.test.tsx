@@ -91,4 +91,21 @@ describe('Asset drawer', () => {
     expect(drawer.queryByRole('button', { name: 'Retire' })).not.toBeInTheDocument()
     expect(drawer.getByText(/pending return from James Wilson/)).toBeInTheDocument()
   })
+
+  it('closes Edit without a write or a toast when nothing changed', async () => {
+    const asset = byTag('EQ-LAP-0011')
+    const activitiesBefore = mockServer.peek().activities.length
+    const { user } = renderApp(`/assets?asset=${asset.id}`)
+    const drawer = within(await screen.findByRole('dialog', { name: new RegExp(asset.name) }))
+
+    await user.click(drawer.getByRole('button', { name: 'Edit' }))
+    const edit = await screen.findByRole('dialog', { name: 'Edit asset' })
+    await user.click(within(edit).getByRole('button', { name: 'Save changes' }))
+    await act(() => new Promise((resolve) => setTimeout(resolve, 20))) // let any write and toast land
+
+    expect(screen.queryByRole('dialog', { name: 'Edit asset' })).not.toBeInTheDocument()
+
+    expect(screen.getByRole('status')).toBeEmptyDOMElement()
+    expect(mockServer.peek().activities).toHaveLength(activitiesBefore)
+  })
 })

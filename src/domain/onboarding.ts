@@ -1,4 +1,4 @@
-import type { Asset, ChecklistItem, OnboardingRecord, WorkspaceData } from '@/types/domain'
+import { DEPARTMENTS, type Asset, type ChecklistItem, type Department, type Employee, type NewHireInput, type OnboardingRecord, type WorkspaceData } from '@/types/domain'
 import { appendActivity, describe } from './activity'
 import type { DomainContext } from './context'
 import { DomainError } from './errors'
@@ -12,6 +12,18 @@ export const DEFAULT_CHECKLIST: ChecklistItem[] = [
   { category: 'Headphones', required: false },
   { category: 'Mobile Phone', required: false },
 ]
+
+/** Sales roles also need a phone on day one; everyone else gets the default kit. */
+const SALES_CHECKLIST: ChecklistItem[] = [
+  { category: 'Laptop', required: true },
+  { category: 'Mobile Phone', required: true },
+  { category: 'Headphones', required: false },
+  { category: 'Monitor', required: false },
+]
+
+export function checklistFor(department: Department): ChecklistItem[] {
+  return department === 'Sales' ? SALES_CHECKLIST : DEFAULT_CHECKLIST
+}
 
 export function getOpenOnboarding(data: WorkspaceData, employeeId: string): OnboardingRecord | undefined {
   return data.onboarding.find((r) => r.employeeId === employeeId && r.completedAt === null)
@@ -115,4 +127,62 @@ export function completeOnboarding(
     },
     ctx,
   )
+}
+
+export type NewHireFieldErrors = Partial<Record<keyof NewHireInput, string>>
+
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+/** Shared by the new-hire form (instant feedback) and addNewHire (the source of truth). */
+export function validateNewHire(input: NewHireInput, employees: Employee[]): NewHireFieldErrors {
+  const errors: NewHireFieldErrors = {}
+  if (!input.name.trim()) errors.name = 'Enter their full name.'
+  const email = input.email.trim().toLowerCase()
+  if (!EMAIL.test(email)) errors.email = 'Enter a valid work email.'
+  else {
+    const clash = employees.find((e) => e.email.toLowerCase() === email)
+    if (clash) errors.email = `This email already belongs to ${clash.name}.`
+  }
+  if (!DEPARTMENTS.includes(input.department)) errors.department = 'Choose a department.'
+  if (!input.designation.trim()) errors.designation = 'Enter their role.'
+  if (!ISO_DATE.test(input.joiningDate)) errors.joiningDate = 'Enter their start date.'
+  if (!input.location.trim()) errors.location = 'Enter where they’ll work.'
+  return errors
+}
+
+function nextEmployeeId(employees: Employee[]): string {
+  const highest = employees.reduce((max, e) => Math.max(max, Number(e.employeeId.split('-').at(-1)) || 0), 1000)
+  return `EQ-${highest + 1}`
+}
+
+/**
+ * Add someone who hasn't started yet and open their onboarding with the
+ * department's checklist. In a real system HR would create the person; IT
+ * starts here so a laptop is ready on day one.
+ */
+export function addNewHire(
+  data: WorkspaceData,
+  input: NewHireInput,
+  ctx: DomainContext,
+): { data: WorkspaceData; employee: Employee } {
+  const errors = validateNewHire(input, data.employees)
+  if (Object.keys(errors).length > 0) throw new DomainError('VALIDATION', 'Please fix the highlighted fields.', errors)
+
+  const employee: Employee = {
+    id: ctx.newId('emp'),
+    employeeId: nextEmployeeId(data.employees),
+    name: input.name.trim(),
+    email: input.email.trim().toLowerCase(),
+    department: input.department,
+    designation: input.designation.trim(),
+    joiningDate: input.joiningDate,
+    status: 'Onboarding',
+    location: input.location.trim(),
+  }
+  const withEmployee = { ...data, employees: [...data.employees, employee] }
+  return {
+    data: initiateOnboarding(withEmployee, { employeeId: employee.id, checklist: checklistFor(employee.department) }, ctx),
+    employee,
+  }
 }

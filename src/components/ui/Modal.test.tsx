@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useState } from 'react'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { Modal } from './Modal'
 
 function Harness() {
@@ -35,6 +35,22 @@ describe('Modal', () => {
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(opener).toHaveFocus()
+  })
+
+  it('cannot be dismissed while it is busy saving', () => {
+    const onClose = vi.fn()
+    render(
+      <Modal open onClose={onClose} title="Saving" dismissible={false}>
+        <p>Working…</p>
+      </Modal>,
+    )
+    const dialog = screen.getByRole('dialog')
+    fireEvent(dialog, new Event('cancel', { cancelable: true })) // Escape
+    fireEvent.mouseDown(dialog)
+    fireEvent.click(dialog) // backdrop
+
+    expect(screen.getByRole('button', { name: 'Close' })).toBeDisabled()
+    expect(onClose).not.toHaveBeenCalled()
   })
 
   it('stays open when a text-selection drag is released on the backdrop', async () => {

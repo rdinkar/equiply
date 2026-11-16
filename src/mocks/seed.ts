@@ -1,14 +1,13 @@
 import { describe as copy } from '@/domain/activity'
 import type { ActivityEntry } from '@/domain/activity'
 import { generateAssetTag } from '@/domain/assets'
-import { DEFAULT_CHECKLIST } from '@/domain/onboarding'
+import { checklistFor } from '@/domain/onboarding'
 import type {
   Activity,
   Asset,
   AssetAssignment,
   AssetCategory,
   AssetCondition,
-  ChecklistItem,
   Department,
   Employee,
   EmployeeStatus,
@@ -164,21 +163,14 @@ const PAST_ASSIGNMENTS: [string, string, number, number, AssetCondition][] = [
   ['2224HS02M7', 'ryan', 255, 2, 'Damaged'],
 ]
 
-const SALES_CHECKLIST: ChecklistItem[] = [
-  { category: 'Laptop', required: true },
-  { category: 'Mobile Phone', required: true },
-  { category: 'Headphones', required: false },
-  { category: 'Monitor', required: false },
-]
-
-/** [employee, createdDaysAgo, checklist, completedDaysAgo | null] */
-const ONBOARDING: [string, number, ChecklistItem[], number | null][] = [
-  ['arjun', 20, DEFAULT_CHECKLIST, 9],
-  ['omar', 12, DEFAULT_CHECKLIST, null],
-  ['carlos', 14, DEFAULT_CHECKLIST, null],
-  ['mei', 10, DEFAULT_CHECKLIST, null],
-  ['hannah', 8, SALES_CHECKLIST, null],
-  ['grace', 2, DEFAULT_CHECKLIST, null],
+/** [employee, createdDaysAgo, completedDaysAgo | null]; checklists come from the department. */
+const ONBOARDING: [string, number, number | null][] = [
+  ['arjun', 20, 9],
+  ['omar', 12, null],
+  ['carlos', 14, null],
+  ['mei', 10, null],
+  ['hannah', 8, null],
+  ['grace', 2, null],
 ]
 
 interface OffboardingRow {
@@ -340,11 +332,11 @@ export function createSeedData(today: Date = new Date()): WorkspaceData {
   }))
 
   // --- lifecycle records -----------------------------------------------------
-  const onboarding: OnboardingRecord[] = ONBOARDING.map(([key, createdDaysAgo, checklist, completedDaysAgo], i) => ({
+  const onboarding: OnboardingRecord[] = ONBOARDING.map(([key, createdDaysAgo, completedDaysAgo], i) => ({
     id: `onb_${String(i + 1).padStart(3, '0')}`,
     employeeId: emp(key).id,
     startDate: emp(key).joiningDate,
-    checklist,
+    checklist: checklistFor(emp(key).department),
     createdAt: stamp(createdDaysAgo, i),
     completedAt: completedDaysAgo === null ? null : stamp(completedDaysAgo, i + 2),
   }))

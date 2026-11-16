@@ -1,5 +1,3 @@
-import type { AssetFieldErrors } from '@/types/domain'
-
 export type DomainErrorCode =
   | 'NOT_FOUND'
   | 'VALIDATION'
@@ -15,9 +13,10 @@ export type DomainErrorCode =
  */
 export class DomainError extends Error {
   readonly code: DomainErrorCode
-  readonly fieldErrors?: AssetFieldErrors
+  /** Per-field messages for form validation failures, keyed by input field name. */
+  readonly fieldErrors?: Partial<Record<string, string>>
 
-  constructor(code: DomainErrorCode, message: string, fieldErrors?: AssetFieldErrors) {
+  constructor(code: DomainErrorCode, message: string, fieldErrors?: Partial<Record<string, string>>) {
     super(message)
     this.name = 'DomainError'
     this.code = code
@@ -29,8 +28,3 @@ export function isDomainError(error: unknown): error is DomainError {
   return error instanceof DomainError
 }
 
-/** User-facing message for any thrown value. */
-export function errorMessage(error: unknown): string {
-  if (error instanceof Error) return error.message
-  return 'Something went wrong. Please try again.'
-}
