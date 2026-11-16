@@ -7,6 +7,7 @@ import type {
   WorkspaceData,
 } from '@/types/domain'
 import type { DomainContext } from './context'
+import { formatDate } from '@/utils/date'
 
 export type ActivityEntry = Omit<Activity, 'id' | 'timestamp' | 'performedBy'>
 
@@ -48,7 +49,7 @@ export const describe = {
     `${assetLabel(asset)} back in stock in ${condition} condition`,
   assetRetired: (asset: Asset, reason?: string) => `${assetLabel(asset)} retired${reason ? `: ${reason}` : ''}`,
   onboardingStarted: (employee: Employee, startDate: string) =>
-    `Onboarding started for ${employee.name} (starts ${startDate})`,
+    `Onboarding started for ${employee.name} (starts ${formatDate(startDate)})`,
   employeeOnboarded: (employee: Employee, assetCount: number) =>
     `${employee.name} onboarded with ${assetCount} ${assetCount === 1 ? 'asset' : 'assets'}`,
   offboardingInitiated: (employee: Employee, assetCount: number) =>
