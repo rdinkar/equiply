@@ -2,6 +2,8 @@
 
 **IT asset and employee operations for a growing SaaS startup.** One workspace where an IT admin can see what hardware the company owns, who holds what, what a new hire still needs, and what a leaver still has to hand back.
 
+**Live demo:** https://equiply-sigma.vercel.app (data resets on reload)
+
 > Frontend-only exercise: React + TypeScript with a simulated API. No backend, no auth.
 
 ## Run it
