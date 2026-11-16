@@ -2,7 +2,7 @@ import { useId, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttribu
 import { cn } from '@/utils/cn'
 
 export const controlClasses =
-  'block w-full rounded-md border border-zinc-300 bg-white px-3 text-sm text-zinc-900 shadow-xs placeholder:text-zinc-400 focus:border-accent-500 focus:ring-2 focus:ring-accent-100 focus:outline-none disabled:bg-zinc-50 disabled:text-zinc-500 aria-invalid:border-red-400 aria-invalid:focus:ring-red-100'
+  'block rounded-md border border-zinc-300 bg-white px-3 text-sm text-zinc-900 shadow-xs placeholder:text-zinc-400 focus:border-accent-500 focus:ring-2 focus:ring-accent-100 focus:outline-none disabled:bg-zinc-50 disabled:text-zinc-500 aria-invalid:border-red-400 aria-invalid:focus:ring-red-100'
 
 interface FieldChromeProps {
   label: string
@@ -64,7 +64,7 @@ export function TextField({ label, error, hint, required, className, ...input }:
           required={required}
           aria-invalid={error ? true : undefined}
           aria-describedby={describedBy}
-          className={cn(controlClasses, 'h-9')}
+          className={cn(controlClasses, 'h-9 w-full')}
           {...input}
         />
       )}
@@ -83,7 +83,7 @@ export function SelectField({ label, error, hint, required, className, children,
           required={required}
           aria-invalid={error ? true : undefined}
           aria-describedby={describedBy}
-          className={cn(controlClasses, 'h-9 pr-8')}
+          className={cn(controlClasses, 'h-9 w-full pr-8')}
           {...select}
         >
           {children}
@@ -104,7 +104,7 @@ export function TextareaField({ label, error, hint, required, className, ...text
           required={required}
           aria-invalid={error ? true : undefined}
           aria-describedby={describedBy}
-          className={cn(controlClasses, 'min-h-20 py-2')}
+          className={cn(controlClasses, 'min-h-20 w-full py-2')}
           {...textarea}
         />
       )}
