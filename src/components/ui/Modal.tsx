@@ -1,5 +1,5 @@
 import { X } from 'lucide-react'
-import { useEffect, useId, useRef, type ReactNode } from 'react'
+import { useId, useLayoutEffect, useRef, type ReactNode } from 'react'
 import { cn } from '@/utils/cn'
 import { IconButton } from './Button'
 
@@ -40,15 +40,22 @@ export function Modal({
   const titleId = useId()
   const descriptionId = useId()
 
-  useEffect(() => {
+  // Layout effect so the cleanup runs while the <dialog> is still attached on unmount.
+  useLayoutEffect(() => {
     const dialog = ref.current
-    if (!dialog) return
-    if (open && !dialog.open) {
+    if (!dialog || !open) return
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    if (!dialog.open) {
       dialog.showModal()
       // showModal() focuses the first focusable element (often Close); prefer the field marked for it.
       dialog.querySelector<HTMLElement>('[data-autofocus]')?.focus()
     }
-    if (!open && dialog.open) dialog.close()
+    return () => {
+      if (dialog.open) dialog.close()
+      // Callers usually unmount the modal on close, which skips the browser's own focus
+      // restoration, so return focus to whatever opened it.
+      if (opener?.isConnected) opener.focus()
+    }
   }, [open])
 
   const isDrawer = variant !== 'dialog'

@@ -93,7 +93,8 @@ export function AssetTable({ assets, employeesById, sort, onSortChange, renderAc
     columns.push({
       id: 'actions',
       header: <span className="sr-only">Actions</span>,
-      className: 'w-px text-right',
+      // On phones the row opens the drawer, which carries every action.
+      className: 'hidden w-px text-right sm:table-cell',
       cell: renderActions,
     })
   }

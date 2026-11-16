@@ -53,7 +53,8 @@ export function DataTable<T>({
 
   return (
     <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-xs">
-      <div className="overflow-x-auto">
+      {/* relative: keeps absolutely positioned sr-only text inside the scroll box */}
+      <div className="relative overflow-x-auto">
         <table className="w-full border-collapse text-left text-[13px]">
           <caption className="sr-only">{caption}</caption>
           <thead className="border-b border-zinc-200 bg-zinc-50/80 text-xs font-medium text-zinc-500">
