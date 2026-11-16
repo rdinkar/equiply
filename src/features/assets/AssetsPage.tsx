@@ -1,13 +1,15 @@
-import { PackageSearch, X } from 'lucide-react'
-import { useDeferredValue, useMemo, type ReactNode } from 'react'
+import { PackageSearch, Plus, RotateCcw, UserCheck, X } from 'lucide-react'
+import { useDeferredValue, useMemo, useState } from 'react'
 import { Pagination } from '@/components/data-display/Pagination'
 import { Button } from '@/components/ui/Button'
 import { EmptyState } from '@/components/ui/feedback'
 import { PageHeader } from '@/components/ui/layout'
+import { getAssetActions } from '@/domain/lifecycle'
 import { indexById } from '@/domain/selectors'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { useWorkspaceData } from '@/store/useWorkspace'
 import { ASSET_STATUSES, type Asset, type AssetStatus } from '@/types/domain'
+import { AssetDialogs, type AssetDialogState } from './AssetDialogs'
 import { AssetFilters } from './AssetFilters'
 import { ASSET_PAGE_SIZE, filterAndSortAssets, hasActiveFilters, type AssetSortKey } from './assetQuery'
 import { AssetTable } from './AssetTable'
@@ -19,15 +21,10 @@ const DEFAULT_DIRECTION: Record<AssetSortKey, 'asc' | 'desc'> = {
   warrantyExpiry: 'asc',
 }
 
-interface AssetsPageProps {
-  /** Header actions (Add asset) and per-row actions, supplied by the asset actions layer. */
-  headerActions?: ReactNode
-  renderRowActions?: (asset: Asset) => ReactNode
-}
-
-export function AssetsPage({ headerActions, renderRowActions }: AssetsPageProps = {}) {
+export function AssetsPage() {
   useDocumentTitle('Assets')
   const data = useWorkspaceData()
+  const [dialog, setDialog] = useState<AssetDialogState>(null)
   const [query, setQuery] = useAssetQueryParams()
   // Typing stays responsive; the filter catches up on the deferred value.
   const deferredQ = useDeferredValue(query.q)
@@ -56,12 +53,35 @@ export function AssetsPage({ headerActions, renderRowActions }: AssetsPageProps 
 
   const filtered = hasActiveFilters(query)
 
+  /** One quick action per row (the next lifecycle step); everything else lives in the drawer. */
+  const renderRowActions = (asset: Asset) => {
+    const actions = getAssetActions(asset)
+    const label = `${asset.name} (${asset.assetTag})`
+    if (actions.assign)
+      return (
+        <Button size="sm" icon={UserCheck} aria-label={`Assign ${label}`} onClick={() => setDialog({ kind: 'assign', assetId: asset.id })}>
+          Assign
+        </Button>
+      )
+    if (actions.return)
+      return (
+        <Button size="sm" icon={RotateCcw} aria-label={`Return ${label}`} onClick={() => setDialog({ kind: 'return', assetId: asset.id })}>
+          Return
+        </Button>
+      )
+    return null
+  }
+
   return (
     <>
       <PageHeader
         title="Assets"
         description={`${statusCounts.all} assets · ${statusCounts.Available} available to assign`}
-        actions={headerActions}
+        actions={
+          <Button variant="primary" icon={Plus} onClick={() => setDialog({ kind: 'create' })}>
+            Add asset
+          </Button>
+        }
       />
       <AssetFilters query={query} onChange={setQuery} statusCounts={statusCounts} />
       <AssetTable
@@ -96,6 +116,7 @@ export function AssetsPage({ headerActions, renderRowActions }: AssetsPageProps 
           />
         }
       />
+      <AssetDialogs state={dialog} onClose={() => setDialog(null)} />
     </>
   )
 }

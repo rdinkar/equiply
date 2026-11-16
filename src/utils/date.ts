@@ -57,6 +57,11 @@ export function formatDate(value: string): string {
   return dateFormatter.format(parseISODate(value))
 }
 
+/** Calendar day of an instant, in the viewer's timezone. */
+export function formatTimestampDate(isoTimestamp: string): string {
+  return dateFormatter.format(new Date(isoTimestamp))
+}
+
 export function formatDateTime(isoTimestamp: string): string {
   return dateTimeFormatter.format(new Date(isoTimestamp))
 }
