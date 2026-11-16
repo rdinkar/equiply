@@ -13,5 +13,7 @@ export default defineConfig({
     setupFiles: ['./src/test/setup.ts'],
     css: false,
     restoreMocks: true,
+    // A timezone west of UTC catches date-only parsing bugs (Review Focus 4).
+    env: { TZ: 'America/Los_Angeles' },
   },
 })
