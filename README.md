@@ -46,7 +46,7 @@ A **centralized IT administrator** (the seed data's admin is *Jordan Lee*) who o
 
 ## What's built
 
-**Scope.** I built in priority order. First the spec's core (inventory, the detail drawer, add/edit, the directory, assign and return, a consistent state model, the activity log). Then the onboarding and offboarding lifecycle actions, because recovering equipment from leavers is the spec's top quality criterion. What's left is listed under *Not built yet* with the reason, rather than half-built.
+**Scope.** I built in priority order. First the core workflows (inventory, the detail drawer, add/edit, the directory, assign and return, a consistent state model, the activity log). Then the onboarding and offboarding lifecycle actions, because getting equipment back from leavers is where IT loses the most hardware. What's left is listed under *Not built yet* with the reason, rather than half-built.
 
 | Area | What you can do |
 | --- | --- |
@@ -57,7 +57,7 @@ A **centralized IT administrator** (the seed data's admin is *Jordan Lee*) who o
 | **Employees** | Directory with search (name, email, ID), department and status filters, and joining-date sort. Detail page: current hardware (return in place), assignment history, activity, onboarding checklist, offboarding status. **Initiate offboarding** for active people. **Complete onboarding/offboarding** right there, disabled with the reason until it's allowed. **Assign** is disabled with the reason when the person can't receive assets. |
 | **Assign / return** | One dialog for both directions: pick a person for an asset, or an asset for a person. Only eligible options are listed. Returns record the condition, and a *Damaged* return goes straight to repair. |
 | **Onboarding** | **Add new hire** creates the person and opens their department's checklist (Sales also needs a phone). The queue shows equipment progress per hire. **Complete onboarding** unlocks only once every required item is allocated. |
-| **Offboarding** | **Start offboarding** for any active employee: pick a last working day and see what's due back. **Record return** on each pending item. **Complete offboarding** unlocks only when nothing is pending (spec rule 10). Returns recorded anywhere tick the same checklist. |
+| **Offboarding** | **Start offboarding** for any active employee: pick a last working day and see what's due back. **Record return** on each pending item. **Complete offboarding** unlocks only when nothing is pending, so no one is marked gone while equipment is still out. Returns recorded anywhere tick the same checklist. |
 | **Activity log** | Every mutation, grouped by day. Each entry links to its asset or person. |
 | **Shell** | Collapsible sidebar (remembered) with live counts, breadcrumbs, a global search combobox (`/` to focus), a notifications bell built from the same attention items, and an off-canvas nav on mobile. |
 
@@ -118,10 +118,10 @@ src/
 
 | Entity | Notes |
 | --- | --- |
-| `Asset` | Spec fields. `status` changes only through lifecycle operations, never through Edit. |
-| `Employee` | Spec fields. `status`: Active · Onboarding · Offboarding · Inactive. |
+| `Asset` | Tag, name, category, manufacturer, model, serial, purchase date and cost, warranty expiry, status, condition, holder (`assignedEmployeeId`), location, notes. `status` changes only through lifecycle operations, never through Edit. |
+| `Employee` | Employee ID, name, email, department, designation, joining date, location. `status`: Active · Onboarding · Offboarding · Inactive. |
 | `AssetAssignment` | `assetId`, `employeeId`, `assignedAt`, `returnedAt?`, `assignedDuring` (onboarding/manual), `returnCondition?`. **History is never deleted.** |
-| `Activity` | Spec fields, plus an optional `related` entity, so an assignment shows on both the asset's and the person's timeline. |
+| `Activity` | Entity type and id, action, description, timestamp, performed by, plus an optional `related` entity, so an assignment shows on both the asset's and the person's timeline. |
 | `OnboardingRecord` | Start date and checklist. **Progress is derived** from current assignments, so an asset assigned from any screen counts. |
 | `OffboardingRecord` | Last working day and per-asset items (`Pending Return · Returned · Damaged on Return`). |
 
@@ -149,7 +149,7 @@ Available ──assign──▶ Assigned ──return (ok)──────▶ 
 | **Native `<dialog>` for modals and drawers** | `showModal()` gives a real focus trap, inert background, Escape, and top-layer stacking (a dialog over the drawer) with no library. Focus returns to the opener on close, or into the surrounding drawer if the opener is gone. | Everything outside the top modal is inert, so toasts render *inside* the topmost open dialog (`useTopLayerHost`), not in `<body>`. Needs a small jsdom polyfill in tests. |
 | **Seed data relative to "today"** | Deterministic (a pure function of the date, no randomness), but warranties are always "ending soon" and joiners always "starting Thursday", whenever the demo runs. | Dates in screenshots change day to day. |
 | **No date library** | `Intl` covers formatting. Date-only strings are parsed as **local** dates (tests run in `America/Los_Angeles` to catch the UTC off-by-one). | A little hand-written date code. |
-| **Hand-rolled `DataTable` instead of TanStack Table** | P0 needs sort, pagination, and responsive columns; filtering lives in pure, tested functions. Fewer dependencies, and it's easy to walk through in an interview. | TanStack would earn its place with column resizing, virtualisation, or multi-sort (P1+). |
+| **Hand-rolled `DataTable` instead of TanStack Table** | The views need sort, pagination, and responsive columns; filtering lives in pure, tested functions. Fewer dependencies, and it's easy to walk through in an interview. | TanStack would earn its place with column resizing, virtualisation, or multi-sort. |
 
 ### Libraries
 
@@ -182,8 +182,8 @@ Available ──assign──▶ Assigned ──return (ok)──────▶ 
 npm test          # 123 tests: domain rules, invariants, seed, selectors, URL state, components, integration
 ```
 
-- **Domain:** every rule in the spec's test list, plus edge cases. For example, retiring an assigned asset keeps its history, a return recorded from the drawer updates the offboarding checklist, and lifecycle fields smuggled into an edit are ignored.
-- **Seed:** minimum counts, invariants, determinism, every spec edge case present, still fresh when run on a later date.
+- **Domain:** every business rule (an unavailable or already-assigned asset can't be assigned, damaged returns go to repair, offboarding can't complete with returns pending, metrics follow state changes), plus edge cases. For example, retiring an assigned asset keeps its history, a return recorded from the drawer updates the offboarding checklist, and lifecycle fields smuggled into an edit are ignored.
+- **Seed:** minimum counts, invariants, determinism, every edge case the demo relies on, still fresh when run on a later date.
 - **Integration:** the real app rendered at a URL. Add an asset and see it open, assign from the drawer, return damaged, Back never carries a dialog onto another record, unknown ids show not-found. Add a new hire, complete onboarding only once required kit is assigned, start offboarding, record returns, complete offboarding only when nothing is pending.
 
 ## Assumptions & tradeoffs
@@ -191,7 +191,7 @@ npm test          # 123 tests: domain rules, invariants, seed, selectors, URL st
 The tradeoff behind each technical choice is in the decisions table above. These are the product assumptions:
 
 - **Total assets** excludes retired ones (shown as a hint). **Employees** excludes people who have left.
-- People **being offboarded** can't receive new hardware, a stricter reading of rule 9, since the goal is recovery.
+- People **being offboarded** can't receive new hardware (only active staff and incoming hires can), since the goal is recovery.
 - A **new asset entered as Damaged** goes straight to *Under Repair*. Editing an Available asset to *Damaged* is refused; use *Mark under repair* instead.
 - **Retire** isn't offered while an asset is pending return on an open offboarding (the drawer says why). Record the return first, so the checklist never points at a retired asset.
 - Tags carry a global sequence number, so sorting by tag means "order added". A tag is permanent: changing an asset's category in Edit keeps its original tag.

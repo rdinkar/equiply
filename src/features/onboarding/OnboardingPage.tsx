@@ -21,7 +21,7 @@ type Dialog = { kind: 'hire' } | { kind: 'complete'; employeeId: string } | null
 /**
  * Incoming hires and their equipment progress, soonest start first. Equipment
  * is assigned from the employee page; completion unlocks once required items
- * are allocated (the guided per-item checklist is P1).
+ * are allocated (a guided per-item checklist is a possible next step).
  */
 export function OnboardingPage() {
   useDocumentTitle('Onboarding')

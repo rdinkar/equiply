@@ -315,7 +315,7 @@ export function markAvailable(
 
 /**
  * Retire an asset permanently. An assigned asset's assignment is closed, not
- * deleted, so its history survives (spec rule 13). An asset still pending
+ * deleted, so its history survives. An asset still pending
  * return on an open offboarding must be resolved there first, so the
  * checklist never points at a retired asset.
  */

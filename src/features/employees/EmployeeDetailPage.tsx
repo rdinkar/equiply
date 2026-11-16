@@ -280,7 +280,7 @@ function ProfileRow({ icon: Icon, label, value }: { icon: typeof Mail; label: st
   )
 }
 
-/** Checklist status and completion; the guided per-item allocation flow arrives with P1. */
+/** Checklist status and completion. Equipment itself is assigned one item at a time above. */
 function OnboardingCard({ employee, onComplete }: { employee: Employee; onComplete: () => void }) {
   const data = useWorkspaceData()
   const reasonId = useId()

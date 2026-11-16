@@ -1,6 +1,5 @@
 /**
- * Domain model. Field names follow the Equiply spec (§5, §7). Relationships
- * are held by id; assignment history lives in `AssetAssignment`, so returning
+ * Domain model. Relationships are held by id; assignment history lives in `AssetAssignment`, so returning
  * or retiring an asset never loses who had it.
  */
 

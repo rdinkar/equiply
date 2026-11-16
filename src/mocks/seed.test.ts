@@ -31,7 +31,7 @@ function edgeCases(data: WorkspaceData, today: Date) {
 describe('createSeedData', () => {
   const data = createSeedData(TODAY)
 
-  it('meets the spec minimums', () => {
+  it('meets the minimum data volumes', () => {
     expect(data.assets.length).toBeGreaterThanOrEqual(30)
     expect(data.employees.length).toBeGreaterThanOrEqual(15)
     expect(data.onboarding.filter((r) => !r.completedAt)).toHaveLength(5)
@@ -53,7 +53,7 @@ describe('createSeedData', () => {
     expect(stamps.every((t) => new Date(t) < TODAY)).toBe(true)
   })
 
-  it('covers every edge case the spec asks for', () => {
+  it('covers every edge case the demo relies on', () => {
     expect(edgeCases(data, TODAY)).toEqual({
       multiAssetEmployee: true,
       available: true,
