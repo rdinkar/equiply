@@ -4,6 +4,23 @@
 
 > Frontend-only exercise: React + TypeScript with a simulated API. No backend, no auth.
 
+## Run it
+
+```bash
+npm install
+npm run dev        # http://localhost:5173
+```
+
+Requires Node 20.19+ or 22.12+ (Vite 8). Other scripts: `npm test` (123 tests), `npm run build` (typecheck + production build), `npm run lint`.
+
+**Two-minute tour.** Seed dates are relative to today, so these always line up.
+
+1. **Overview → Needs attention:** James Wilson leaves in 3 days with 2 assets still out. Open him, record a return, and watch the overview counts move.
+2. **Assets:** open any available laptop and assign it to Mei Tanaka, who starts in 3 days. Her onboarding checklist turns ready, and **Onboarding → Complete** makes her active.
+3. **Offboarding:** Ryan O’Connor has handed everything back, so **Complete offboarding** is enabled. James's is disabled until his last items come back.
+4. **Onboarding → Add new hire**, or **Employees → anyone active → Initiate offboarding**, to start a lifecycle from scratch.
+5. `/?simulate=load-error` shows the error state; `/?simulate=mutation-error` makes the next save fail.
+
 ---
 
 ## The problem
@@ -25,7 +42,9 @@ A **centralized IT administrator** (the seed data's admin is *Jordan Lee*) who o
 
 ---
 
-## What's built (P0)
+## What's built
+
+**Scope.** I built in priority order. First the spec's core (inventory, the detail drawer, add/edit, the directory, assign and return, a consistent state model, the activity log). Then the onboarding and offboarding lifecycle actions, because recovering equipment from leavers is the spec's top quality criterion. What's left is listed under *Not built yet* with the reason, rather than half-built.
 
 | Area | What you can do |
 | --- | --- |
@@ -42,14 +61,12 @@ A **centralized IT administrator** (the seed data's admin is *Jordan Lee*) who o
 
 **States everywhere:** skeletons while loading, an error state with retry, empty states with a way out (*Clear filters*), button spinners during writes, success toasts, and errors shown inline in the dialog that caused them.
 
-> Try the error state with `/?simulate=load-error`, or make the next write fail with `/?simulate=mutation-error`.
+## Not built yet, and why
 
-## Not built yet (P1), with the hooks in place
-
-- **Guided onboarding allocation.** Pick an asset for each checklist row, review the selection, and confirm it all in one step. Today, equipment is assigned one item at a time from the employee page; the checklist and completion rules already work.
-- **Asset distribution chart** (category × assigned/available).
-- **Activity log filters** (type, date, entity).
-- **Advanced table features** (multi-sort, page-size control, column visibility).
+- **Guided onboarding allocation** (pick an asset per checklist row, review, confirm in one step). Today equipment is assigned one item at a time from the employee page. The checklist, progress, and completion gate already work, so this is a UI-only addition. I put making every lifecycle action work end to end ahead of it.
+- **Asset distribution chart** (category × assigned/available). The overview answers "what needs me today"; "what do we own" is already answered numerically by the inventory's status chips. A stacked bar would be the next addition to the overview.
+- **Activity log filters** (type, date, entity). 39 events read fine grouped by day. Filters start to matter at hundreds.
+- **Advanced table features** (page-size control, column visibility, multi-sort). They don't change the core workflow.
 
 ---
 
@@ -63,7 +80,7 @@ src/
     data-display/ DataTable, Pagination, status badges
     layout/       App shell: sidebar, top bar, global search, loading/error gate
   domain/         ★ Business rules: pure functions, no React
-  services/       Simulated API: mock server (latency, failures) + asset/workspace services
+  services/       Simulated API: mock server (latency, failures) + workspace, asset, onboarding, offboarding services
   store/          Client cache: Context + useReducer, actions, useMutation
   features/       dashboard · assets · employees · onboarding · offboarding · activity
   hooks/          useUrlState, useAssetDrawer, useLocalStorageState, …
@@ -165,9 +182,11 @@ npm test          # 123 tests: domain rules, invariants, seed, selectors, URL st
 
 - **Domain:** every rule in the spec's test list, plus edge cases. For example, retiring an assigned asset keeps its history, a return recorded from the drawer updates the offboarding checklist, and lifecycle fields smuggled into an edit are ignored.
 - **Seed:** minimum counts, invariants, determinism, every spec edge case present, still fresh when run on a later date.
-- **Integration:** the real app rendered at a URL. Add an asset and see it in the table, assign from the drawer, return damaged, unknown ids show not-found, offboarding blocks new assignments.
+- **Integration:** the real app rendered at a URL. Add an asset and see it open, assign from the drawer, return damaged, Back never carries a dialog onto another record, unknown ids show not-found. Add a new hire, complete onboarding only once required kit is assigned, start offboarding, record returns, complete offboarding only when nothing is pending.
 
-## Assumptions
+## Assumptions & tradeoffs
+
+The tradeoff behind each technical choice is in the decisions table above. These are the product assumptions:
 
 - **Total assets** excludes retired ones (shown as a hint). **Employees** excludes people who have left.
 - People **being offboarded** can't receive new hardware, a stricter reading of rule 9, since the goal is recovery.
@@ -175,26 +194,28 @@ npm test          # 123 tests: domain rules, invariants, seed, selectors, URL st
 - **Retire** isn't offered while an asset is pending return on an open offboarding (the drawer says why). Record the return first, so the checklist never points at a retired asset.
 - Tags carry a global sequence number, so sorting by tag means "order added". A tag is permanent: changing an asset's category in Edit keeps its original tag.
 - No persistence: a reload re-seeds the data. That's intentional for a demo. Production would persist via the API, and `localStorage` would be the wrong store for shared records.
+- One admin at a time. Concurrent edits by two admins aren't handled (see *If it grew*).
+- A new hire is created by IT here. In a real company HR's system would create the person and IT would pick up the onboarding.
 
 ## What I'd do next
 
-1. **Guided onboarding allocation:** pick assets per checklist row, review, confirm in one transaction.
-2. **Distribution chart** on the overview, and **activity filters**.
-3. **Server-state library** (TanStack Query) once there's a real API: per-entity queries, optimistic updates with rollback, background refresh.
-4. **Scale:** paginate or virtualise employees and activity (fine at 21 people and 39 events, not at 2,000); index lookups by id.
-5. **E2E tests** (Playwright) for the assign → return → dashboard flow and keyboard-only navigation, plus axe checks in CI.
-6. **Bulk actions** (assign a standard kit), CSV import of existing spreadsheets, warranty alerts by email.
+1. **Guided onboarding allocation.** Today a five-item kit takes five dialogs. One review-and-confirm step cuts clicks and mistakes on a new hire's first day.
+2. **A real API with persistence, via TanStack Query.** Whole-workspace responses and reset-on-reload are the biggest gaps between this demo and a product. Per-resource queries add optimistic updates, rollback, and background refresh.
+3. **Browser end-to-end tests (Playwright) and axe checks in CI.** The suite runs in jsdom, which has no real top-layer dialogs or focus behaviour. The toast and focus bugs I fixed were found in a real browser, so that layer needs its own tests.
+4. **Distribution chart and activity filters**, for the "what do we own" and "what happened last month" questions.
+5. **Bulk actions and CSV import.** Real adoption starts from an existing spreadsheet, and kits are usually assigned together.
 
----
+## What I'd refactor
 
-## Setup
+- **Dialog state is repeated per page.** Five screens each hold a union of which dialog is open. One dialog host with URL-addressable dialogs (`?dialog=assign&asset=…`) would remove the repetition and make dialogs linkable, as the drawer already is.
+- **Form plumbing is duplicated.** *Add asset* and *Add new hire* each handle values, errors, re-validation after the first submit, and focusing the first invalid field. That belongs in a small `useForm` hook.
+- **`seed.ts` is 400+ lines.** The rows belong in JSON fixtures, leaving only the builder that derives assignments and activity.
+- **Lookups scan arrays.** Selectors use `find` over arrays. Fine at 50 rows; a normalised `byId` cache would come first before any growth.
 
-```bash
-npm install
-npm run dev        # http://localhost:5173
-npm test
-npm run build      # typecheck + production build
-npm run lint
-```
+## If it grew
 
-Requires Node 20.19+ or 22.12+ (Vite 8).
+- **The server owns the rules.** `domain/` moves to a shared package the API runs. The client keeps it for instant validation. Records get version fields so two admins can't double-assign the same laptop.
+- **Server-side filtering and paging.** `useUrlState` already holds the query as plain params, so it maps one-to-one onto API query strings.
+- **Targeted cache updates.** Per-resource queries replace whole-workspace swaps; tables virtualise; routes are code-split.
+- **Auth and roles.** For example, a read-only view for managers, and the audit log kept server-side.
+- **Features stay the boundary.** Each `features/*` folder can become its own module, with `components/ui` extracted as a design-system package.
