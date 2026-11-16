@@ -71,13 +71,13 @@ export function WarrantyLabel({ date, today, showDate = true }: { date: string; 
     days < 0 ? 'Expired' : days === 0 ? 'Expires today' : days <= WARRANTY_WARNING_DAYS ? `${days} days left` : null
   return (
     <span className="whitespace-nowrap">
-      {showDate && <span className={cn(days < 0 && 'text-zinc-400')}>{formatDate(date)}</span>}
+      {showDate && <span className={cn(days < 0 && 'text-zinc-500')}>{formatDate(date)}</span>}
       {hint && (
         <span
           className={cn(
             'text-xs',
             showDate && 'ml-1.5',
-            days < 0 ? 'text-zinc-400' : 'font-medium text-amber-700',
+            days < 0 ? 'text-zinc-500' : 'font-medium text-amber-700',
           )}
         >
           {hint}

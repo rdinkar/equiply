@@ -1,7 +1,8 @@
-import { Search, X } from 'lucide-react'
+import { X } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { ChipGroup } from '@/components/ui/ChipGroup'
 import { controlClasses } from '@/components/ui/Field'
+import { SearchField } from '@/components/ui/SearchField'
 import { ASSET_CATEGORIES, ASSET_CONDITIONS, ASSET_STATUSES, type AssetStatus } from '@/types/domain'
 import { cn } from '@/utils/cn'
 import { hasActiveFilters, type AssetQuery, type AssetSortKey } from './assetQuery'
@@ -9,6 +10,9 @@ import { hasActiveFilters, type AssetQuery, type AssetSortKey } from './assetQue
 interface AssetFiltersProps {
   query: AssetQuery
   onChange: (patch: Partial<AssetQuery>) => void
+  onClear: () => void
+  /** Remount key and starting text for the search box; changes when filters are cleared. */
+  search: { key: number; initial: string }
   statusCounts: Record<AssetStatus | 'all', number>
 }
 
@@ -20,7 +24,7 @@ const SORT_OPTIONS: { value: `${AssetSortKey}:${'asc' | 'desc'}`; label: string 
   { value: 'warrantyExpiry:desc', label: 'Warranty ending latest' },
 ]
 
-export function AssetFilters({ query, onChange, statusCounts }: AssetFiltersProps) {
+export function AssetFilters({ query, onChange, onClear, search, statusCounts }: AssetFiltersProps) {
   const statusOptions: (AssetStatus | 'all')[] = ['all', ...ASSET_STATUSES]
   return (
     <div className="mb-4 space-y-3">
@@ -36,17 +40,14 @@ export function AssetFilters({ query, onChange, statusCounts }: AssetFiltersProp
       />
 
       <div className="flex flex-wrap items-center gap-2">
-        <div className="relative min-w-56 flex-1 sm:max-w-sm">
-          <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-zinc-400" aria-hidden />
-          <input
-            type="search"
-            aria-label="Search assets"
-            placeholder="Search name, tag, serial, or employee"
-            value={query.q}
-            onChange={(event) => onChange({ q: event.target.value })}
-            className={cn(controlClasses, 'h-9 w-full pl-8')}
-          />
-        </div>
+        <SearchField
+          key={search.key}
+          className="min-w-56 flex-1 sm:max-w-sm"
+          label="Search assets"
+          placeholder="Search name, tag, serial, or employee"
+          defaultValue={search.initial}
+          onSearch={(q) => onChange({ q })}
+        />
         <select
           aria-label="Category"
           value={query.category}
@@ -93,7 +94,7 @@ export function AssetFilters({ query, onChange, statusCounts }: AssetFiltersProp
             variant="ghost"
             size="sm"
             icon={X}
-            onClick={() => onChange({ q: '', category: 'all', status: 'all', condition: 'all' })}
+            onClick={onClear}
           >
             Clear filters
           </Button>

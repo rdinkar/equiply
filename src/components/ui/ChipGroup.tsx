@@ -35,7 +35,7 @@ export function ChipGroup<T extends string>({ label, options, value, onChange }:
           >
             {option.label}
             {option.count !== undefined && (
-              <span className={cn('tabular-nums', active ? 'text-zinc-300' : 'text-zinc-400')}>{option.count}</span>
+              <span className={cn('tabular-nums', active ? 'text-zinc-300' : 'text-zinc-500')}>{option.count}</span>
             )}
           </button>
         )

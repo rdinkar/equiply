@@ -1,5 +1,5 @@
-import { Search, UserRoundSearch, X } from 'lucide-react'
-import { useDeferredValue, useMemo } from 'react'
+import { UserRoundSearch, X } from 'lucide-react'
+import { useDeferredValue, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { paths } from '@/app/paths'
 import { DataTable, type Column } from '@/components/data-display/DataTable'
@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button'
 import { ChipGroup } from '@/components/ui/ChipGroup'
 import { controlClasses } from '@/components/ui/Field'
 import { EmptyState } from '@/components/ui/feedback'
+import { SearchField } from '@/components/ui/SearchField'
 import { Avatar, PageHeader } from '@/components/ui/layout'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { useToday } from '@/hooks/useToday'
@@ -34,6 +35,11 @@ export function EmployeesPage() {
   const today = useToday()
   const [query, setQuery] = useUrlState(parseEmployeeQuery, serializeEmployeeQuery)
   const deferredQ = useDeferredValue(query.q)
+  const [search, setSearch] = useState(() => ({ key: 0, initial: query.q }))
+  const clearFilters = () => {
+    setQuery(CLEAR)
+    setSearch((s) => ({ key: s.key + 1, initial: '' }))
+  }
 
   const assetCounts = useMemo(() => {
     const counts = new Map<string, number>()
@@ -75,7 +81,7 @@ export function EmployeesPage() {
       cell: (e) => <span className="font-mono text-xs text-zinc-500">{e.employeeId}</span>,
     },
     { id: 'department', header: 'Department', className: 'hidden md:table-cell', cell: (e) => e.department },
-    { id: 'designation', header: 'Designation', className: 'hidden xl:table-cell', cell: (e) => e.designation },
+    { id: 'designation', header: 'Designation', className: 'hidden lg:table-cell', cell: (e) => e.designation },
     {
       id: 'joined',
       header: 'Joining date',
@@ -97,7 +103,7 @@ export function EmployeesPage() {
       className: 'text-right tabular-nums',
       cell: (e) => {
         const count = assetCounts.get(e.id) ?? 0
-        return <span className={cn(count === 0 && 'text-zinc-400')}>{count}</span>
+        return <span className={cn(count === 0 && 'text-zinc-500')}>{count}</span>
       },
     },
     { id: 'status', header: 'Status', cell: (e) => <EmployeeStatusBadge status={e.status} /> },
@@ -116,17 +122,14 @@ export function EmployeesPage() {
           options={(['all', ...EMPLOYEE_STATUSES] as const).map((s) => ({ value: s, label: s === 'all' ? 'All' : s, count: statusCounts[s] }))}
         />
         <div className="flex flex-wrap items-center gap-2">
-          <div className="relative min-w-56 flex-1 sm:max-w-sm">
-            <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-zinc-400" aria-hidden />
-            <input
-              type="search"
-              aria-label="Search employees"
-              placeholder="Search name, email, or employee ID"
-              value={query.q}
-              onChange={(e) => setQuery({ q: e.target.value })}
-              className={cn(controlClasses, 'h-9 w-full pl-8')}
-            />
-          </div>
+          <SearchField
+            key={search.key}
+            className="min-w-56 flex-1 sm:max-w-sm"
+            label="Search employees"
+            placeholder="Search name, email, or employee ID"
+            defaultValue={search.initial}
+            onSearch={(q) => setQuery({ q })}
+          />
           <select
             aria-label="Department"
             value={query.department}
@@ -154,7 +157,7 @@ export function EmployeesPage() {
             <option value="joiningDate:asc">Sort: Longest tenure</option>
           </select>
           {hasActiveEmployeeFilters(query) && (
-            <Button variant="ghost" size="sm" icon={X} onClick={() => setQuery(CLEAR)}>
+            <Button variant="ghost" size="sm" icon={X} onClick={clearFilters}>
               Clear filters
             </Button>
           )}
@@ -180,7 +183,7 @@ export function EmployeesPage() {
             title="No employees match these filters"
             description="Try another name or ID, or clear the filters."
             action={
-              <Button icon={X} onClick={() => setQuery(CLEAR)}>
+              <Button icon={X} onClick={clearFilters}>
                 Clear filters
               </Button>
             }

@@ -6,14 +6,17 @@ import { EmptyState } from '@/components/ui/feedback'
 import { PageHeader } from '@/components/ui/layout'
 import { getAssetActions } from '@/domain/lifecycle'
 import { indexById } from '@/domain/selectors'
+import { useAssetDrawer } from '@/hooks/useAssetDrawer'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { useWorkspaceData } from '@/store/useWorkspace'
 import { ASSET_STATUSES, type Asset, type AssetStatus } from '@/types/domain'
 import { AssetDialogs, type AssetDialogState } from './AssetDialogs'
 import { AssetFilters } from './AssetFilters'
-import { ASSET_PAGE_SIZE, filterAndSortAssets, hasActiveFilters, type AssetSortKey } from './assetQuery'
+import { ASSET_PAGE_SIZE, filterAndSortAssets, hasActiveFilters, type AssetQuery, type AssetSortKey } from './assetQuery'
 import { AssetTable } from './AssetTable'
 import { useAssetQueryParams } from './useAssetQueryParams'
+
+const CLEARED: Partial<AssetQuery> = { q: '', category: 'all', status: 'all', condition: 'all' }
 
 const DEFAULT_DIRECTION: Record<AssetSortKey, 'asc' | 'desc'> = {
   assetTag: 'asc',
@@ -25,7 +28,15 @@ export function AssetsPage() {
   useDocumentTitle('Assets')
   const data = useWorkspaceData()
   const [dialog, setDialog] = useState<AssetDialogState>(null)
+  const drawer = useAssetDrawer()
   const [query, setQuery] = useAssetQueryParams()
+  // The search box is uncontrolled; clearing remounts it with an explicit empty value
+  // (the URL update lands a beat later, inside a transition).
+  const [search, setSearch] = useState(() => ({ key: 0, initial: query.q }))
+  const clearFilters = () => {
+    setQuery(CLEARED)
+    setSearch((s) => ({ key: s.key + 1, initial: '' }))
+  }
   // Typing stays responsive; the filter catches up on the deferred value.
   const deferredQ = useDeferredValue(query.q)
 
@@ -83,7 +94,7 @@ export function AssetsPage() {
           </Button>
         }
       />
-      <AssetFilters query={query} onChange={setQuery} statusCounts={statusCounts} />
+      <AssetFilters query={query} onChange={setQuery} onClear={clearFilters} search={search} statusCounts={statusCounts} />
       <AssetTable
         assets={pageRows}
         employeesById={employeesById}
@@ -97,7 +108,7 @@ export function AssetsPage() {
               title="No assets match these filters"
               description="Try a different search term, or clear the filters to see the whole inventory."
               action={
-                <Button icon={X} onClick={() => setQuery({ q: '', category: 'all', status: 'all', condition: 'all' })}>
+                <Button icon={X} onClick={clearFilters}>
                   Clear filters
                 </Button>
               }
@@ -116,7 +127,7 @@ export function AssetsPage() {
           />
         }
       />
-      <AssetDialogs state={dialog} onClose={() => setDialog(null)} />
+      <AssetDialogs state={dialog} onClose={() => setDialog(null)} onCreated={(asset) => drawer.open(asset.id)} />
     </>
   )
 }

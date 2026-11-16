@@ -48,6 +48,8 @@ describe('Add asset', () => {
     await user.click(dialog.getByRole('button', { name: 'Add asset' }))
 
     expect(await screen.findByRole('status')).toHaveTextContent('Studio Display added as EQ-MON-0054')
+    // The new asset opens straight away instead of landing unseen on the last page.
+    expect(await screen.findByRole('dialog', { name: 'Studio Display' })).toHaveAccessibleDescription(/EQ-MON-0054/)
     await user.type(screen.getByRole('searchbox', { name: 'Search assets' }), 'Studio')
     const table = screen.getByRole('table', { name: 'Asset inventory' })
     expect(await within(table).findByRole('link', { name: 'Studio Display' })).toBeInTheDocument()

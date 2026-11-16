@@ -62,7 +62,7 @@ export function AttentionList({ items, compact = false, onNavigate }: AttentionL
       {groups.map((group) => (
         <section key={group.kind} aria-label={KIND_META[group.kind].heading}>
           <h3 className="bg-zinc-50/60 px-4 pt-3 pb-1.5 text-[11px] font-semibold tracking-wide text-zinc-500 uppercase">
-            {KIND_META[group.kind].heading} <span className="font-normal text-zinc-400">· {group.items.length}</span>
+            {KIND_META[group.kind].heading} <span className="font-normal text-zinc-500">· {group.items.length}</span>
           </h3>
           <ul className="divide-y divide-zinc-100">{group.items.map(row)}</ul>
         </section>

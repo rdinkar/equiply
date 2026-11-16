@@ -30,16 +30,16 @@ A **centralized IT administrator** (the seed data's admin is *Jordan Lee*) who o
 | Area | What you can do |
 | --- | --- |
 | **Overview** | Seven metrics, all derived from live data and each linking to its filtered view. A *Needs attention* list: equipment to recover, joiners to prepare, warranties ending within 30 days, assets in repair. Recent activity. |
-| **Assets** | Search by name, tag, serial, or the holder's name. Filter by status (chips with counts), category, and condition. Sort by tag, purchase date, or warranty, from column headers or a sort menu on small screens. Paginated. All of it lives in the URL. |
+| **Assets** | Search by name, tag, serial, or the holder's name. Each row shows manufacturer and model under the name. Filter by status (chips with counts), category, and condition. Sort by tag, purchase date, or warranty, from column headers or a sort menu on small screens. Paginated. All of it lives in the URL. |
 | **Asset drawer** | Opens from `?asset=<id>` over **any** page. Shows identity, condition, purchase, warranty (with days left), current holder, assignment history, and activity timeline. Offers only the actions the lifecycle allows: Assign · Return · Mark under repair · Mark available · Edit · Retire. |
-| **Add / edit asset** | Validated form. Tags are generated (`EQ-LAP-0054`). Duplicate serials are rejected, ignoring case and whitespace. Validation errors focus the first bad field. |
+| **Add / edit asset** | Validated form. Tags are generated (`EQ-LAP-0054`). Duplicate serials are rejected, ignoring case and whitespace. Validation errors focus the first bad field. A new asset opens in the drawer straight away. |
 | **Employees** | Directory with search (name, email, ID), department and status filters, and joining-date sort. Detail page: current hardware (return in place), assignment history, activity, onboarding checklist status, offboarding banner. **Assign** is disabled with the reason when the person can't receive assets. |
 | **Assign / return** | One dialog for both directions: pick a person for an asset, or an asset for a person. Only eligible options are listed. Returns record the condition, and a *Damaged* return goes straight to repair. |
 | **Onboarding / Offboarding** | Read-only queues: equipment progress per incoming hire, and outstanding returns per leaver. Rows link to where the work happens. |
 | **Activity log** | Every mutation, grouped by day. Each entry links to its asset or person. |
 | **Shell** | Collapsible sidebar (remembered) with live counts, breadcrumbs, a global search combobox (`/` to focus), a notifications bell built from the same attention items, and an off-canvas nav on mobile. |
 
-**States everywhere:** skeletons while loading, an error state with retry, empty states with a way out (*Clear filters*), button spinners during writes, and success or error toasts.
+**States everywhere:** skeletons while loading, an error state with retry, empty states with a way out (*Clear filters*), button spinners during writes, success toasts, and errors shown inline in the dialog that caused them.
 
 > Try the error state with `/?simulate=load-error`, or make the next write fail with `/?simulate=mutation-error`.
 
@@ -125,8 +125,8 @@ Available ──assign──▶ Assigned ──return (ok)──────▶ 
 | **Pure domain functions + `DomainError`** | Rules live in one place, are trivially unit-testable, and compose (`processAssetReturn` delegates to `returnAsset`). | Exceptions instead of Result types; composition is simpler, but callers need try/catch. `useMutation` turns them into `{ ok, error }` so UI code can't leak a rejection. |
 | **Server returns the whole workspace** | Atomic multi-entity updates (asset + assignment + checklist + activity) with no cache-patching code. | Fine at ~50 assets. At real scale I'd return changed entities and patch, or move to TanStack Query with targeted invalidation. |
 | **Context + `useReducer`, two contexts** | Small app, single source of truth, no dependency. The split keeps write-only components from re-rendering. | No selectors with memoised subscriptions (Redux/Zustand). Every consumer of data re-renders on change; acceptable at this size. |
-| **URL as view state** | Shareable filtered views ("show me everything under repair"), dashboard metrics link to them, Back works, drawer is linkable. | Slightly more code than `useState`. `replace: true` keeps typing out of history. |
-| **Native `<dialog>` for modals and drawers** | `showModal()` gives a real focus trap, inert background, Escape, and top-layer stacking (a dialog over the drawer) with no library. Focus returns to the opener on close. | Needs a tiny jsdom polyfill in tests. |
+| **URL as view state** | Shareable filtered views ("show me everything under repair"), dashboard metrics link to them, Back works, drawer is linkable. | Slightly more code than `useState`. `replace: true` keeps typing out of history. React Router applies URL updates in a transition, so search boxes are uncontrolled (otherwise the caret jumps). Clearing filters remounts them. |
+| **Native `<dialog>` for modals and drawers** | `showModal()` gives a real focus trap, inert background, Escape, and top-layer stacking (a dialog over the drawer) with no library. Focus returns to the opener on close, or into the surrounding drawer if the opener is gone. | Everything outside the top modal is inert, so toasts render *inside* the topmost open dialog (`useTopLayerHost`), not in `<body>`. Needs a small jsdom polyfill in tests. |
 | **Seed data relative to "today"** | Deterministic (a pure function of the date, no randomness), but warranties are always "ending soon" and joiners always "starting Thursday", whenever the demo runs. | Dates in screenshots change day to day. |
 | **No date library** | `Intl` covers formatting. Date-only strings are parsed as **local** dates (tests run in `America/Los_Angeles` to catch the UTC off-by-one). | A little hand-written date code. |
 | **Hand-rolled `DataTable` instead of TanStack Table** | P0 needs sort, pagination, and responsive columns; filtering lives in pure, tested functions. Fewer dependencies, and it's easy to walk through in an interview. | TanStack would earn its place with column resizing, virtualisation, or multi-sort (P1+). |
@@ -148,18 +148,18 @@ Available ──assign──▶ Assigned ──return (ok)──────▶ 
 ## Accessibility & responsiveness
 
 - Landmarks, a skip link, a breadcrumb `nav`, `aria-current` on navigation.
-- Tables have captions, `scope="col"`, `aria-sort`, and sort buttons. The row's first cell is a real link (row click is only a mouse shortcut).
+- Tables have captions, `scope="col"`, `aria-sort`, and sort buttons. The asset or employee name is a real link (row click is only a mouse shortcut).
 - Form fields wire `aria-invalid` and `aria-describedby` to their error or hint. A failed submit focuses the first invalid field.
 - Status is always text (badges include the word); colour only reinforces it.
 - Global search is an ARIA combobox (`aria-activedescendant`, arrow keys, Enter, Escape).
-- Toasts: success in a polite live region, errors as `role="alert"`.
+- Toasts: a polite live region, rendered inside the topmost open dialog so a modal drawer never hides them or makes them inert.
 - Respects `prefers-reduced-motion`.
 - Desktop-first, checked down to 375px: columns drop by breakpoint, row actions move into the drawer on phones, the sidebar becomes an off-canvas dialog. No page-level horizontal scroll.
 
 ## Testing
 
 ```bash
-npm test          # 88 tests: domain rules, invariants, seed, selectors, URL state, components, integration
+npm test          # 100 tests: domain rules, invariants, seed, selectors, URL state, components, integration
 ```
 
 - **Domain:** every rule in the spec's test list, plus edge cases. For example, retiring an assigned asset keeps its history, a return recorded from the drawer updates the offboarding checklist, and lifecycle fields smuggled into an edit are ignored.
@@ -171,8 +171,8 @@ npm test          # 88 tests: domain rules, invariants, seed, selectors, URL sta
 - **Total assets** excludes retired ones (shown as a hint). **Employees** excludes people who have left.
 - People **being offboarded** can't receive new hardware, a stricter reading of rule 9, since the goal is recovery.
 - A **new asset entered as Damaged** goes straight to *Under Repair*. Editing an Available asset to *Damaged* is refused; use *Mark under repair* instead.
-- **Retire** is blocked while an asset is pending return on an open offboarding. Record the return first, so the checklist never points at a retired asset.
-- Tags carry a global sequence number, so sorting by tag means "order added".
+- **Retire** isn't offered while an asset is pending return on an open offboarding (the drawer says why). Record the return first, so the checklist never points at a retired asset.
+- Tags carry a global sequence number, so sorting by tag means "order added". A tag is permanent: changing an asset's category in Edit keeps its original tag.
 - No persistence: a reload re-seeds the data. That's intentional for a demo. Production would persist via the API, and `localStorage` would be the wrong store for shared records.
 
 ## What I'd do next

@@ -23,7 +23,7 @@ function MetricGroup({ title, metrics, className }: { title: string; metrics: Me
               <span className={cn('mt-1 block text-2xl font-semibold tracking-tight tabular-nums', metric.highlight ? 'text-amber-700' : 'text-zinc-900')}>
                 {metric.value}
               </span>
-              <span className="mt-0.5 block text-xs text-zinc-400 sm:truncate">{metric.hint}</span>
+              <span className="mt-0.5 block text-xs text-zinc-500 sm:truncate">{metric.hint}</span>
             </Link>
           </li>
         ))}

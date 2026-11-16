@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useState } from 'react'
 import { describe, expect, it } from 'vitest'
@@ -36,4 +36,59 @@ describe('Modal', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(opener).toHaveFocus()
   })
+
+  it('stays open when a text-selection drag is released on the backdrop', async () => {
+    const user = userEvent.setup()
+    render(<Harness />)
+    await user.click(screen.getByRole('button', { name: 'Open settings' }))
+    const dialog = screen.getByRole('dialog')
+
+    fireEvent.mouseDown(screen.getByRole('textbox', { name: 'Name' }))
+    fireEvent.click(dialog) // mouseup landed outside the panel
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+
+    fireEvent.mouseDown(dialog)
+    fireEvent.click(dialog) // a real backdrop click
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('keeps focus inside the surrounding dialog when the opener disappears', async () => {
+    const user = userEvent.setup()
+    render(<NestedHarness />)
+    await user.click(screen.getByRole('button', { name: 'Open drawer' }))
+    await user.click(screen.getByRole('button', { name: 'Retire' }))
+    await user.click(screen.getByRole('button', { name: 'Confirm retire' }))
+
+    const drawer = screen.getByRole('dialog', { name: 'Drawer' })
+    expect(screen.queryByRole('button', { name: 'Retire' })).not.toBeInTheDocument()
+    expect(drawer).toContainElement(document.activeElement as HTMLElement)
+  })
 })
+
+function NestedHarness() {
+  const [drawerOpen, setDrawerOpen] = useState(false)
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [retired, setRetired] = useState(false)
+  return (
+    <>
+      <button onClick={() => setDrawerOpen(true)}>Open drawer</button>
+      {drawerOpen && (
+        <Modal open onClose={() => setDrawerOpen(false)} title="Drawer" variant="drawer-right">
+          {!retired && <button onClick={() => setConfirmOpen(true)}>Retire</button>}
+        </Modal>
+      )}
+      {confirmOpen && (
+        <Modal open onClose={() => setConfirmOpen(false)} title="Confirm">
+          <button
+            onClick={() => {
+              setRetired(true)
+              setConfirmOpen(false)
+            }}
+          >
+            Confirm retire
+          </button>
+        </Modal>
+      )}
+    </>
+  )
+}

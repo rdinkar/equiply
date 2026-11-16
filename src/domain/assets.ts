@@ -9,7 +9,7 @@ import type {
 import { appendActivity, assetLabel, describe } from './activity'
 import type { DomainContext } from './context'
 import { DomainError } from './errors'
-import { canReceiveAssets, getAssetActions, receiveBlockReason } from './lifecycle'
+import { canReceiveAssets, getAssetActions, receiveBlockReason, retireBlockReason } from './lifecycle'
 import { getActiveAssignment, getEmployeeById } from './selectors'
 import { hasErrors, validateAssetInput } from './validation'
 
@@ -328,14 +328,9 @@ export function retireAsset(
   if (!getAssetActions(asset).retire) {
     throw new DomainError('INVALID_TRANSITION', `${assetLabel(asset)} is already retired.`)
   }
-  const pendingOffboarding = data.offboarding.some(
-    (r) => r.completedAt === null && r.items.some((i) => i.assetId === assetId && i.state === 'Pending Return'),
-  )
-  if (pendingOffboarding) {
-    throw new DomainError(
-      'INVALID_TRANSITION',
-      `${assetLabel(asset)} is pending return on an offboarding checklist. Record its return there first.`,
-    )
+  const blocked = retireBlockReason(data, assetId)
+  if (blocked) {
+    throw new DomainError('INVALID_TRANSITION', blocked.replace('This asset', assetLabel(asset)))
   }
 
   let next = data

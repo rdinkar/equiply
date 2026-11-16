@@ -178,10 +178,11 @@ describe('updateAsset', () => {
     const current = asset(data, 'ast_free')
     const base = { ...current, notes: 'Spare for loaners' }
 
-    expectDomainError(
+    const error = expectDomainError(
       () => updateAsset(data, { assetId: 'ast_free', changes: { ...base, serialNumber: 'SN-ASSIGNED' } }, testContext()),
       'VALIDATION',
     )
+    expect(error.fieldErrors?.serialNumber).toMatch(/EQ-LAP-0002/)
     const next = updateAsset(data, { assetId: 'ast_free', changes: base }, testContext())
     expect(asset(next, 'ast_free').notes).toBe('Spare for loaners')
     expect(next.activities[0]).toMatchObject({ action: 'asset_updated' })

@@ -171,7 +171,7 @@ export function GlobalSearch() {
                   <span className="block truncate text-[13px] font-medium text-zinc-900">{result.title}</span>
                   <span className="block truncate text-xs text-zinc-500">{result.subtitle}</span>
                 </span>
-                <span className="text-[11px] text-zinc-400 capitalize">{result.kind}</span>
+                <span className="text-[11px] text-zinc-500 capitalize">{result.kind}</span>
               </li>
             ))
           )}

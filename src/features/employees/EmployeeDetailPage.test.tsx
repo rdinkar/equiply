@@ -1,4 +1,4 @@
-import { screen, within } from '@testing-library/react'
+import { act, screen, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { renderApp } from '@/test/renderApp'
 
@@ -30,5 +30,25 @@ describe('Employee detail', () => {
     expect(await screen.findByText(/2 assets still to recover/)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Assign asset' })).toBeDisabled()
     expect(screen.getByText(/being offboarded/)).toBeInTheDocument()
+  })
+
+  it('closes an open dialog when Back returns to a different employee', async () => {
+    const { user, router } = renderApp('/employees/emp_priya')
+    await screen.findByRole('heading', { name: /Priya Sharma/ })
+    await act(() => router.navigate('/employees/emp_nikhil'))
+    await user.click(await screen.findByRole('button', { name: 'Assign asset' }))
+    expect(await screen.findByRole('dialog', { name: 'Assign asset' })).toHaveAccessibleDescription(/Nikhil Rao/)
+
+    await act(() => router.navigate(-1))
+
+    expect(await screen.findByRole('heading', { name: /Priya Sharma/ })).toBeInTheDocument()
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('keeps the caret where the user is typing in the directory search', async () => {
+    const { user } = renderApp('/employees?q=priya')
+    const box = await screen.findByRole('searchbox', { name: 'Search employees' })
+    await user.type(box, 'XY', { initialSelectionStart: 2, initialSelectionEnd: 2 })
+    expect(box).toHaveValue('prXYiya')
   })
 })

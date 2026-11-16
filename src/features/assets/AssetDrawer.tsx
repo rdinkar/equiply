@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/Button'
 import { EmptyState } from '@/components/ui/feedback'
 import { Avatar, DescriptionList } from '@/components/ui/layout'
 import { Modal } from '@/components/ui/Modal'
-import { getAssetActions } from '@/domain/lifecycle'
+import { getAssetActions, retireBlockReason } from '@/domain/lifecycle'
 import {
   getActiveAssignment,
   getActivitiesFor,
@@ -36,9 +36,15 @@ import { AssetDialogs, type AssetDialogState } from './AssetDialogs'
  */
 export function AssetDrawer() {
   const { assetId, close } = useAssetDrawer()
+  if (!assetId) return null
+  // Keyed by id: dialog state belongs to one asset and resets when the drawer
+  // closes or moves to another asset (including via browser Back).
+  return <AssetDrawerPanel key={assetId} assetId={assetId} onClose={close} />
+}
+
+function AssetDrawerPanel({ assetId, onClose: close }: { assetId: string; onClose: () => void }) {
   const data = useWorkspaceData()
   const [dialog, setDialog] = useState<AssetDialogState>(null)
-  if (!assetId) return null
   const asset = getAssetById(data, assetId)
 
   return (
@@ -70,6 +76,7 @@ function AssetDetails({ asset, onAction }: { asset: Asset; onAction: (state: Ass
   const data = useWorkspaceData()
   const today = useToday()
   const actions = getAssetActions(asset)
+  const retireBlocked = actions.retire ? retireBlockReason(data, asset.id) : null
   const active = getActiveAssignment(data, asset.id)
   const holder = active ? getEmployeeById(data, active.employeeId) : undefined
   const history = getAssignmentHistory(data, { assetId: asset.id })
@@ -113,12 +120,14 @@ function AssetDetails({ asset, onAction }: { asset: Asset; onAction: (state: Ass
             Edit
           </Button>
         )}
-        {actions.retire && (
+        {actions.retire && !retireBlocked && (
           <Button variant="ghost" icon={Archive} className="text-red-700 hover:bg-red-50" onClick={() => onAction({ kind: 'retire', assetId: asset.id })}>
             Retire
           </Button>
         )}
       </div>
+
+      {retireBlocked && <p className="-mt-3 text-xs text-zinc-500">{retireBlocked}</p>}
 
       {asset.status === 'Retired' && (
         <p className="rounded-md bg-zinc-100 px-3 py-2 text-[13px] text-zinc-600">

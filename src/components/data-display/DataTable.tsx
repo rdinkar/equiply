@@ -91,7 +91,7 @@ export function DataTable<T>({
           </thead>
           <tbody className="divide-y divide-zinc-100">
             {rows.map((row) => (
-              // Row click is a mouse shortcut; the first cell holds a real link for keyboard and screen-reader users.
+              // Row click is a mouse shortcut; the row's primary cell holds a real link for keyboard and screen-reader users.
               <tr
                 key={getRowId(row)}
                 onClick={handleRowClick(row)}

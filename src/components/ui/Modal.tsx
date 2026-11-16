@@ -37,6 +37,9 @@ export function Modal({
   hideTitle = false,
 }: ModalProps) {
   const ref = useRef<HTMLDialogElement>(null)
+  // A click fires on the common ancestor of mousedown and mouseup, so a text-selection
+  // drag released on the backdrop would look like a backdrop click. Track where it began.
+  const pressedBackdrop = useRef(false)
   const titleId = useId()
   const descriptionId = useId()
 
@@ -45,6 +48,8 @@ export function Modal({
     const dialog = ref.current
     if (!dialog || !open) return
     const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    // Where focus goes if the opener is gone by close time (e.g. the asset was retired).
+    const fallback = opener?.closest<HTMLElement>('dialog[open]') ?? document.getElementById('main')
     if (!dialog.open) {
       dialog.showModal()
       // showModal() focuses the first focusable element (often Close); prefer the field marked for it.
@@ -53,8 +58,11 @@ export function Modal({
     return () => {
       if (dialog.open) dialog.close()
       // Callers usually unmount the modal on close, which skips the browser's own focus
-      // restoration, so return focus to whatever opened it.
-      if (opener?.isConnected) opener.focus()
+      // restoration. Restore it after the commit, once the page has settled.
+      queueMicrotask(() => {
+        if (opener?.isConnected) opener.focus()
+        else if (fallback?.isConnected) (fallback.querySelector<HTMLElement>('[data-modal-title]') ?? fallback).focus()
+      })
     }
   }, [open])
 
@@ -71,9 +79,13 @@ export function Modal({
         event.preventDefault()
         onClose()
       }}
+      onMouseDown={(event) => {
+        pressedBackdrop.current = event.target === ref.current
+      }}
       onClick={(event) => {
         // A click on the <dialog> itself (not its content) is a backdrop click.
-        if (event.target === ref.current) onClose()
+        if (event.target === ref.current && pressedBackdrop.current) onClose()
+        pressedBackdrop.current = false
       }}
       className={cn(
         'bg-transparent p-0 text-zinc-900 backdrop:bg-zinc-900/35',
@@ -93,7 +105,12 @@ export function Modal({
         >
           <header className="flex items-start gap-3 border-b border-zinc-200 px-5 py-4">
             <div className="min-w-0 flex-1">
-              <h2 id={titleId} className={cn('text-base font-semibold text-zinc-900', hideTitle && 'sr-only')}>
+              <h2
+                id={titleId}
+                tabIndex={-1}
+                data-modal-title
+                className={cn('text-base font-semibold text-zinc-900 focus:outline-none', hideTitle && 'sr-only')}
+              >
                 {title}
               </h2>
               {description && (

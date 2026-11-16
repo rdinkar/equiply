@@ -1,17 +1,21 @@
 import { CircleAlert, CircleCheck, X } from 'lucide-react'
 import { useCallback, useMemo, useRef, useState, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
+import { useTopLayerHost } from '@/hooks/useTopLayerHost'
 import { cn } from '@/utils/cn'
 import { ToastContext, type Toast, type ToastApi, type ToastTone } from './toastContext'
 
 const DISMISS_AFTER_MS = 5000
 
 /**
- * Success and error feedback for mutations. Success toasts go to a polite
+ * Success and error feedback for mutations. The stack renders inside the topmost
+ * open dialog (see useTopLayerHost) so an open drawer never hides it. Success toasts go to a polite
  * live region. Errors use role="alert" so screen readers announce them at once.
  */
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([])
   const nextId = useRef(1)
+  const host = useTopLayerHost()
 
   const dismiss = useCallback((id: number) => setToasts((all) => all.filter((t) => t.id !== id)), [])
 
@@ -32,22 +36,26 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext value={api}>
       {children}
-      <div className="pointer-events-none fixed inset-x-4 bottom-4 z-50 flex flex-col items-end gap-2 sm:left-auto sm:w-96">
-        <div role="status" aria-live="polite" className="contents">
-          {toasts
-            .filter((t) => t.tone === 'success')
-            .map((t) => (
-              <ToastCard key={t.id} toast={t} onDismiss={dismiss} />
-            ))}
-        </div>
-        {toasts
-          .filter((t) => t.tone === 'error')
-          .map((t) => (
-            <div key={t.id} role="alert" className="contents">
-              <ToastCard toast={t} onDismiss={dismiss} />
+      {host &&
+        createPortal(
+          <div className="pointer-events-none fixed inset-x-4 bottom-4 z-50 flex flex-col items-end gap-2 sm:left-auto sm:w-96">
+            <div role="status" aria-live="polite" className="contents">
+              {toasts
+                .filter((t) => t.tone === 'success')
+                .map((t) => (
+                  <ToastCard key={t.id} toast={t} onDismiss={dismiss} />
+                ))}
             </div>
-          ))}
-      </div>
+            {toasts
+              .filter((t) => t.tone === 'error')
+              .map((t) => (
+                <div key={t.id} role="alert" className="contents">
+                  <ToastCard toast={t} onDismiss={dismiss} />
+                </div>
+              ))}
+          </div>,
+          host,
+        )}
     </ToastContext>
   )
 }
@@ -64,7 +72,7 @@ function ToastCard({ toast, onDismiss }: { toast: Toast; onDismiss: (id: number)
       <button
         type="button"
         onClick={() => onDismiss(toast.id)}
-        className="-m-1 rounded p-1 text-zinc-400 hover:text-zinc-700"
+        className="-m-1 rounded p-1 text-zinc-500 hover:text-zinc-700"
         aria-label="Dismiss notification"
       >
         <X className="size-3.5" aria-hidden />

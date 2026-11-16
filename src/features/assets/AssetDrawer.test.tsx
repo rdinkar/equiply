@@ -1,4 +1,4 @@
-import { screen, within } from '@testing-library/react'
+import { act, screen, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { mockServer } from '@/services/mockServer'
 import { renderApp } from '@/test/renderApp'
@@ -49,5 +49,46 @@ describe('Asset drawer', () => {
 
     expect(await drawer.findByText('Under Repair')).toBeInTheDocument()
     expect(drawer.getByRole('button', { name: 'Mark available' })).toBeInTheDocument()
+  })
+
+  it('shows the success toast inside the drawer so it is not covered by it', async () => {
+    const asset = byTag('EQ-LAP-0011') // Available
+    const { user } = renderApp(`/assets?asset=${asset.id}`)
+    const drawer = await screen.findByRole('dialog', { name: new RegExp(asset.name) })
+
+    await user.click(within(drawer).getByRole('button', { name: 'Mark under repair' }))
+    const confirm = within(await screen.findByRole('dialog', { name: 'Send to repair?' }))
+    await user.click(confirm.getByRole('button', { name: 'Mark under repair' }))
+
+    const toast = await screen.findByRole('status')
+    expect(toast).toHaveTextContent(/moved to repair/)
+    expect(toast.closest('dialog')).toBe(drawer)
+  })
+
+  it('does not carry an open dialog over to the next asset after Back', async () => {
+    const first = byTag('EQ-LAP-0008')
+    const second = byTag('EQ-LAP-0011')
+    const { user, router } = renderApp('/assets')
+    await screen.findByRole('table', { name: 'Asset inventory' })
+
+    await act(() => router.navigate(`/assets?asset=${first.id}`))
+    const drawer = within(await screen.findByRole('dialog', { name: new RegExp(first.name) }))
+    await user.click(drawer.getByRole('button', { name: 'Retire' }))
+    expect(await screen.findByRole('dialog', { name: 'Retire this asset?' })).toBeInTheDocument()
+
+    await act(() => router.navigate(-1))
+    await act(() => router.navigate(`/assets?asset=${second.id}`))
+
+    expect(await screen.findByRole('dialog', { name: new RegExp(second.name) })).toBeInTheDocument()
+    expect(screen.queryByRole('dialog', { name: 'Retire this asset?' })).not.toBeInTheDocument()
+  })
+
+  it('does not offer Retire while the asset is pending return from a leaver', async () => {
+    const jamesLaptop = byTag('EQ-LAP-0006')
+    renderApp(`/assets?asset=${jamesLaptop.id}`)
+    const drawer = within(await screen.findByRole('dialog', { name: new RegExp(jamesLaptop.name) }))
+
+    expect(drawer.queryByRole('button', { name: 'Retire' })).not.toBeInTheDocument()
+    expect(drawer.getByText(/pending return from James Wilson/)).toBeInTheDocument()
   })
 })

@@ -59,7 +59,8 @@ export function EmployeeDetailPage() {
       </>
     )
   }
-  return <EmployeeDetail employee={employee} />
+  // Keyed by id so open dialogs reset when moving between people (including browser Back).
+  return <EmployeeDetail key={employee.id} employee={employee} />
 }
 
 function EmployeeDetail({ employee }: { employee: Employee }) {

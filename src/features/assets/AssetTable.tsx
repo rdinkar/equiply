@@ -33,7 +33,7 @@ export function AssetTable({ assets, employeesById, sort, onSortChange, renderAc
     },
     {
       id: 'name',
-      header: 'Asset name',
+      header: 'Asset',
       cell: (a) => (
         <div className="flex min-w-0 items-center gap-2.5">
           <CategoryIcon category={a.category} />
@@ -41,22 +41,16 @@ export function AssetTable({ assets, employeesById, sort, onSortChange, renderAc
             <Link to={drawer.linkTo(a.id)} className="block truncate font-medium text-zinc-900 hover:text-accent-700 hover:underline">
               {a.name}
             </Link>
-            <span className="block font-mono text-[11px] text-zinc-400 sm:hidden">{a.assetTag}</span>
+            {/* Manufacturer / model sits under the name so it shows at every width. */}
+            <span className="block truncate text-xs text-zinc-500" title={`${a.manufacturer} ${a.model}`}>
+              <span className="font-mono sm:hidden">{a.assetTag} · </span>
+              {a.manufacturer} {a.model}
+            </span>
           </div>
         </div>
       ),
     },
-    { id: 'category', header: 'Category', className: 'hidden xl:table-cell', cell: (a) => a.category },
-    {
-      id: 'model',
-      header: 'Manufacturer / Model',
-      className: 'hidden 2xl:table-cell max-w-56',
-      cell: (a) => (
-        <span className="block truncate" title={`${a.manufacturer} ${a.model}`}>
-          <span className="text-zinc-900">{a.manufacturer}</span> <span className="text-zinc-500">{a.model}</span>
-        </span>
-      ),
-    },
+    { id: 'category', header: 'Category', className: 'hidden lg:table-cell', cell: (a) => a.category },
     {
       id: 'assignee',
       header: 'Assigned to',
@@ -69,7 +63,7 @@ export function AssetTable({ assets, employeesById, sort, onSortChange, renderAc
             <span className="truncate">{holder.name}</span>
           </Link>
         ) : (
-          <span className="text-zinc-400">—</span>
+          <span className="text-zinc-500">—</span>
         )
       },
     },
@@ -85,7 +79,7 @@ export function AssetTable({ assets, employeesById, sort, onSortChange, renderAc
       header: 'Warranty',
       sortKey: 'warrantyExpiry',
       className: 'hidden md:table-cell',
-      cell: (a) => (a.status === 'Retired' ? <span className="text-zinc-400">—</span> : <WarrantyLabel date={a.warrantyExpiry} today={today} />),
+      cell: (a) => (a.status === 'Retired' ? <span className="text-zinc-500">—</span> : <WarrantyLabel date={a.warrantyExpiry} today={today} />),
     },
     { id: 'status', header: 'Status', cell: (a) => <AssetStatusBadge status={a.status} /> },
   ]

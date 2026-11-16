@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { baseData, makeAsset, testContext } from '@/test/fixtures'
 import type { WorkspaceData } from '@/types/domain'
-import { assignAsset, returnAsset } from './assets'
+import { assignAsset, retireAsset, returnAsset } from './assets'
 import { DomainError } from './errors'
 import { findInvariantViolations } from './invariants'
 import {
@@ -103,5 +103,13 @@ describe('returns recorded outside the offboarding screen', () => {
       processedAt: '2026-11-16T10:00:00.000Z',
     })
     expect(findInvariantViolations(data)).toEqual([])
+  })
+})
+
+describe('retiring during offboarding', () => {
+  it('refuses to retire an asset still pending return, naming who has it', () => {
+    expect(() => retireAsset(priyaOffboarding(), { assetId: 'ast_phone' }, testContext())).toThrowError(
+      /pending return from Priya Sharma/,
+    )
   })
 })
